@@ -308,7 +308,7 @@ export class EffectsSystem {
     this.floatingTexts.push({
       x: x + (Math.random() - 0.5) * 20, // Slight random offset to prevent overlap
       y,
-      text: Math.floor(damage).toString(),
+      text: damage.toFixed(1),  // Show 1 decimal place
       vy: -40, // Float upward
       life: 0.8, // Fade over 0.8 seconds
       color: '#FFFFFF', // White color

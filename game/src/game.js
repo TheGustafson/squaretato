@@ -34,6 +34,7 @@ export class Game {
   #lastCountdownSecond;
   #totalKills;
   #isPaused;
+  #weaponDamageStats;  // Track damage by weapon type
 
   constructor(canvas, ctx, input) {
     this.#canvas = canvas;
@@ -48,6 +49,7 @@ export class Game {
     this.#moneyEarned = 0;
     this.#totalKills = 0;
     this.#isPaused = false;
+    this.#weaponDamageStats = new Map();  // Initialize damage tracking
     
     // Initialize systems
     this.#effectsSystem = new EffectsSystem(canvas);
@@ -200,6 +202,9 @@ export class Game {
     this.settingsScreen.deactivate();
     this.#canvas.style.cursor = 'crosshair';
     
+    // Reset weapon damage stats for this round
+    this.#weaponDamageStats.clear();
+    
     // Initialize player with upgraded stats (in game area, not full canvas)
     this.#player = new Player(this.#canvas.width / 2, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2);
     this.#player.health = this.#gameState.playerData.stats.health;
@@ -319,7 +324,7 @@ export class Game {
     this.#spawnSystem.update(deltaTime, this.#enemies, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles);
 
     // Update weapon system (weapons handle their own sounds/effects now)
-    this.#weaponSystem.update(deltaTime, this.#player, this.#enemies, this.#projectiles);
+    this.#weaponSystem.update(deltaTime, this.#player, this.#enemies, this.#projectiles, this.#weaponDamageStats);
 
     // Update enemies - pass player, projectiles, and enemies array for AI behaviors
     for (let i = this.#enemies.length - 1; i >= 0; i--) {
@@ -442,6 +447,12 @@ export class Game {
             this.#effectsSystem.addDamageNumber(enemy.position.x, enemy.position.y - 10, damage);
             this.#effectsSystem.addImpactEffect(enemy.position.x, enemy.position.y);
             
+            // Track weapon damage stats
+            if (projectile.weaponId) {
+              const currentDamage = this.#weaponDamageStats.get(projectile.weaponId) || 0;
+              this.#weaponDamageStats.set(projectile.weaponId, currentDamage + damage);
+            }
+            
             // Life steal healing
             if (this.#player.hasLifeSteal) {
               const healAmount = damage * BALANCE.items.lifeSteal.lifeStealPercent;
@@ -465,6 +476,12 @@ export class Game {
                   if (distance <= projectile.explosionRadius) {
                     otherEnemy.takeDamage(projectile.explosionDamage);
                     this.#effectsSystem.addDamageNumber(otherEnemy.position.x, otherEnemy.position.y - 10, projectile.explosionDamage);
+                    
+                    // Track explosive damage
+                    if (projectile.weaponId) {
+                      const currentDamage = this.#weaponDamageStats.get(projectile.weaponId) || 0;
+                      this.#weaponDamageStats.set(projectile.weaponId, currentDamage + projectile.explosionDamage);
+                    }
                   }
                 }
               }
@@ -733,6 +750,28 @@ export class Game {
     this.#ctx.fillStyle = '#FFFF00';
     if (this.#moneyEarned > 0) {
       this.#ctx.fillText(`+${this.#moneyEarned}`, 100, hpBarY + 35);
+    }
+    
+    // Weapon damage stats - compact display
+    if (this.#weaponDamageStats.size > 0) {
+      this.#ctx.font = '9px monospace';
+      this.#ctx.fillStyle = '#FF8800';
+      this.#ctx.textAlign = 'left';
+      
+      // Get sorted weapon damage entries (top 3)
+      const weaponDamages = Array.from(this.#weaponDamageStats.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3);
+      
+      let damageText = 'DMG: ';
+      for (const [weaponId, damage] of weaponDamages) {
+        // Get weapon name from balance config
+        const weaponName = BALANCE.weapons[weaponId]?.name || weaponId;
+        const shortName = weaponName.split(' ')[0].substring(0, 4).toUpperCase();
+        damageText += `${shortName}:${damage.toFixed(0)} `;
+      }
+      
+      this.#ctx.fillText(damageText.trim(), 20, hpBarY + 50);
     }
     
     // Center section - Stage and Timer

@@ -243,12 +243,20 @@ export class Projectile extends Entity {
         this.velocity.x = -this.velocity.x;
         this.position.x = Math.max(halfSize, Math.min(canvasWidth - halfSize, this.position.x));
         this.bounces++;
+        // Update initial angle for wave motion after bounce
+        if (this.waveMotion) {
+          this.initialAngle = Math.atan2(this.velocity.y, this.velocity.x);
+        }
       }
       
       if (this.position.y - halfSize <= 0 || this.position.y + halfSize >= canvasHeight) {
         this.velocity.y = -this.velocity.y;
         this.position.y = Math.max(halfSize, Math.min(canvasHeight - halfSize, this.position.y));
         this.bounces++;
+        // Update initial angle for wave motion after bounce
+        if (this.waveMotion) {
+          this.initialAngle = Math.atan2(this.velocity.y, this.velocity.x);
+        }
       }
     } else {
       // Remove if out of bounds (no bouncing)

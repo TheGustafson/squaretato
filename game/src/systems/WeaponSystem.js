@@ -18,10 +18,11 @@ export class WeaponSystem {
     this.weapons = this.weapons.filter(w => w.id !== weaponId);
   }
 
-  update(deltaTime, player, enemies, projectiles) {
+  update(deltaTime, player, enemies, projectiles, weaponDamageStats) {
     // All weapons fire independently based on their own cooldowns
     for (const weapon of this.weapons) {
       if (enemies.length > 0) {
+        weapon.weaponDamageStats = weaponDamageStats;  // Pass damage tracking
         weapon.update(deltaTime, player, enemies, projectiles);
       }
     }
@@ -116,7 +117,7 @@ export class Weapon {
   }
 
   getDamage(playerStats) {
-    return Math.max(1, Math.floor(playerStats.damage * this.damageMultiplier));
+    return Math.max(1, playerStats.damage * this.damageMultiplier);  // Decimal damage for accuracy
   }
 
   update(deltaTime, player, enemies, projectiles) {
@@ -180,6 +181,7 @@ export class Pistol extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     
     // Apply weapon upgrade bonuses
     if (this.autoAimBonus) {
@@ -229,6 +231,7 @@ export class Shotgun extends Weapon {
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.piercing = true;  // Shotgun projectiles pierce through enemies
       projectile.speed = BALANCE.projectile.baseSpeed * (0.8 + Math.random() * 0.4); // Variable speed
       
@@ -278,6 +281,7 @@ export class SMG extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.size = 3; // Smaller bullets
     
     // Apply piercing from weapon upgrade (level 3+)
@@ -360,6 +364,7 @@ export class RocketLauncher extends Weapon {
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.size = 10; // Bigger projectile
       projectile.speed = BALANCE.projectile.baseSpeed * 0.7; // Slower
       projectile.color = '#FF4500'; // Orange rocket
@@ -385,7 +390,7 @@ export class RocketLauncher extends Weapon {
       this.effectsSystem.addMuzzleFlash(
         player.position.x,
         player.position.y,
-        targetAngle,
+        player.aimAngle,
         '#FF4500'
       );
     }
@@ -414,6 +419,7 @@ export class LaserBeam extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.speed = BALANCE.projectile.baseSpeed * 3; // Very fast
     projectile.size = 2;
     projectile.color = '#00FFFF'; // Cyan beam
@@ -444,6 +450,7 @@ export class RicochetGun extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.maxBounces = 7;
     projectile.color = '#FF00FF'; // Magenta
     projectile.smartBounce = true; // Custom property for seeking behavior
@@ -479,6 +486,7 @@ export class WaveGun extends Weapon {
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.piercing = true;
       projectile.waveMotion = true; // Custom sine wave motion
       projectile.wavePhase = i * (Math.PI * 2 / this.projectileCount); // Different phase for each
@@ -547,6 +555,7 @@ export class BurstRifle extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.speed = BALANCE.projectile.baseSpeed * 1.5; // Fast bullets
     projectile.color = '#FFFF00';
     
@@ -581,6 +590,7 @@ export class OrbitalCannon extends Weapon {
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.speed = BALANCE.projectile.baseSpeed * 0.6; // Slower expansion
       projectile.size = 8;
       projectile.color = '#FF1493'; // Deep pink
@@ -633,6 +643,7 @@ export class NovaBurst extends Weapon {
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.speed = BALANCE.projectile.baseSpeed * 0.8; // Moderate speed
       projectile.size = 5;
       projectile.color = '#00FFFF'; // Cyan
@@ -713,6 +724,11 @@ export class ChainLightning extends Weapon {
     if (this.effectsSystem) {
       this.effectsSystem.addDamageNumber(closestEnemy.position.x, closestEnemy.position.y - 10, damage);
     }
+    // Track chain lightning damage
+    if (this.weaponDamageStats) {
+      const currentDamage = this.weaponDamageStats.get(this.id) || 0;
+      this.weaponDamageStats.set(this.id, currentDamage + damage);
+    }
     const hitEnemies = new Set([closestEnemy]);
     
     // Create lightning chain
@@ -749,6 +765,11 @@ export class ChainLightning extends Weapon {
       nextEnemy.takeDamage(currentDamage);
       if (this.effectsSystem) {
         this.effectsSystem.addDamageNumber(nextEnemy.position.x, nextEnemy.position.y - 10, currentDamage);
+      }
+      // Track chain damage
+      if (this.weaponDamageStats) {
+        const totalDamage = this.weaponDamageStats.get(this.id) || 0;
+        this.weaponDamageStats.set(this.id, totalDamage + currentDamage);
       }
       hitEnemies.add(nextEnemy);
       chainPath.push({ x: nextEnemy.position.x, y: nextEnemy.position.y });
@@ -789,6 +810,7 @@ export class BoomerangLauncher extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.size = 8;
     projectile.color = '#00FF88'; // Green boomerang
     projectile.boomerang = true;
@@ -822,6 +844,7 @@ export class GravityWell extends Weapon {
       'player'
     );
     projectile.damage = 0; // No direct damage on hit
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.size = 15;
     projectile.color = '#AA00AA'; // Purple gravity well
     projectile.speed = BALANCE.projectile.baseSpeed * 0.5; // Slower

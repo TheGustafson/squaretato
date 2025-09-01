@@ -219,12 +219,12 @@ export class Projectile extends Entity {
     // Handle wave motion before normal movement
     if (this.waveMotion) {
       this.distanceTraveled += this.speed * deltaTime;
-      const waveOffset = Math.sin(this.distanceTraveled * 0.01 + this.wavePhase) * this.waveAmplitude;
+      const waveOffset = Math.sin(this.distanceTraveled * 0.03 + this.wavePhase) * this.waveAmplitude;  // 3x frequency
       
       // Apply perpendicular offset to create wave pattern
       const perpAngle = this.initialAngle + Math.PI / 2;
-      this.velocity.x = Math.cos(this.initialAngle) * this.speed + Math.cos(perpAngle) * waveOffset * 0.01;
-      this.velocity.y = Math.sin(this.initialAngle) * this.speed + Math.sin(perpAngle) * waveOffset * 0.01;
+      this.velocity.x = Math.cos(this.initialAngle) * this.speed + Math.cos(perpAngle) * waveOffset * 0.03;  // Match 3x frequency
+      this.velocity.y = Math.sin(this.initialAngle) * this.speed + Math.sin(perpAngle) * waveOffset * 0.03;  // Match 3x frequency
     }
     
     super.update(deltaTime);

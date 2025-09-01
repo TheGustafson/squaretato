@@ -1,7 +1,7 @@
 {
-  "name": "first",
-  "version": "0.0.1",
-  "description": "first attempt at a browser game",
+  "name": "squaretato",
+  "version": "1.0.0",
+  "description": "Squaretato - A roguelike survival game with permadeath and weapon upgrades",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
@@ -14,6 +14,7 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "gh-pages": "^6.3.0",
     "prettier": "^3.6.2",
     "vite": "^7.1.3"
   }

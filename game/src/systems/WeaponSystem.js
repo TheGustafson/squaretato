@@ -465,6 +465,7 @@ export class WaveGun extends Weapon {
 
   fire(player, enemies, projectiles) {
     const damage = this.getDamage(player.stats || { damage: BALANCE.player.baseDamage });
+    console.log('WaveGun firing - projectileCount:', this.projectileCount, 'damage:', damage);
     
     for (let i = 0; i < this.projectileCount; i++) {
       const projectile = new Projectile(
@@ -478,6 +479,7 @@ export class WaveGun extends Weapon {
       projectile.waveMotion = true; // Custom sine wave motion
       projectile.wavePhase = i * (Math.PI * 2 / this.projectileCount); // Different phase for each
       projectile.waveAmplitude = this.waveAmplitude || 30;  // Use upgraded amplitude if available
+      console.log(`  Projectile ${i}: waveMotion=${projectile.waveMotion}, phase=${projectile.wavePhase}, amplitude=${projectile.waveAmplitude}`);
       projectile.color = '#00FF00';
       projectile.size = 6;
       

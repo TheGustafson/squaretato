@@ -220,6 +220,10 @@ export class Projectile extends Entity {
     if (this.waveMotion) {
       this.distanceTraveled += this.speed * deltaTime;
       const waveOffset = Math.sin(this.distanceTraveled * 0.03 + this.wavePhase) * this.waveAmplitude;  // 3x frequency
+      if (!this.waveLogged) {
+        console.log('Wave projectile updating:', {motion: this.waveMotion, phase: this.wavePhase, amp: this.waveAmplitude, offset: waveOffset});
+        this.waveLogged = true;
+      }
       
       // Apply perpendicular offset to create wave pattern
       const perpAngle = this.initialAngle + Math.PI / 2;

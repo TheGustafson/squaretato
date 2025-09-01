@@ -280,7 +280,5 @@ export class Menu {
     ctx.font = '14px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(`Money: $${this.gameState.playerData.money}`, layout.padding, layout.statsAreaY);
-    ctx.fillText(`XP: ${this.gameState.playerData.totalXP}`, layout.padding, layout.statsAreaY + 20);
-    ctx.fillText(`Level ${this.gameState.playerData.characterLevel}`, layout.padding, layout.statsAreaY + 40);
   }
 }

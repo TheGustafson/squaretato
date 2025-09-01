@@ -1,0 +1,18 @@
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: #000000;
+  display: grid;
+  place-items: center;
+  color: #00FF00;
+  font-family: 'Courier New', monospace;
+}
+canvas {
+  border: 2px solid #00FF00;
+  background: #000000;
+  image-rendering: pixelated;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}

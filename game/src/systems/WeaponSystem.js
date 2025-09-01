@@ -98,7 +98,7 @@ export class Weapon {
       this.boomerangDistance = (config.boomerangDistance || 200) + (upgrades.boomerangDistance || 0) * (level - 1);
     }
     if (id === 'waveGun') {
-      this.waveAmplitude = 30 + (upgrades.waveAmplitude || 0) * (level - 1);
+      this.waveAmplitude = 100 + (upgrades.waveAmplitude || 0) * (level - 1);  // Base 100px amplitude
     }
     if (id === 'gravityWell') {
       this.wellDuration = (config.wellDuration || 4) + (upgrades.wellDuration || 0) * (level - 1);
@@ -465,23 +465,38 @@ export class WaveGun extends Weapon {
 
   fire(player, enemies, projectiles) {
     const damage = this.getDamage(player.stats || { damage: BALANCE.player.baseDamage });
-    console.log('WaveGun firing - projectileCount:', this.projectileCount, 'damage:', damage);
+    
+    const spreadAngle = Math.PI / 8;  // 22.5 degree total spread (narrower than shotgun's 45)
     
     for (let i = 0; i < this.projectileCount; i++) {
+      // Calculate angle offset for each projectile to create arc
+      const angleOffset = (i - (this.projectileCount - 1) / 2) * (spreadAngle / (this.projectileCount - 1));
+      
       const projectile = new Projectile(
         player.position.x,
         player.position.y,
-        player.aimAngle,
+        player.aimAngle + angleOffset,
         'player'
       );
       projectile.damage = damage;
       projectile.piercing = true;
       projectile.waveMotion = true; // Custom sine wave motion
       projectile.wavePhase = i * (Math.PI * 2 / this.projectileCount); // Different phase for each
-      projectile.waveAmplitude = this.waveAmplitude || 30;  // Use upgraded amplitude if available
-      console.log(`  Projectile ${i}: waveMotion=${projectile.waveMotion}, phase=${projectile.wavePhase}, amplitude=${projectile.waveAmplitude}`);
+      projectile.waveAmplitude = this.waveAmplitude || 100;  // Maximum wave amplitude
+      projectile.initialAngle = player.aimAngle + angleOffset;  // Update initial angle for wave calculation
       projectile.color = '#00FF00';
-      projectile.size = 6;
+      projectile.size = 12;  // 2x size for easier hits
+      
+      // Apply item effects
+      if (player.hasBounceHouse) {
+        const bounces = BALANCE.items.bounceHouse.bouncesPerStack * (player.bounceHouseStacks || 1);
+        projectile.maxBounces = bounces;
+      }
+      if (player.hasExplosiveRounds) {
+        projectile.explosive = true;
+        projectile.explosionRadius = BALANCE.items.explosiveRounds.aoeRadius;
+        projectile.explosionDamage = damage * BALANCE.items.explosiveRounds.aoeDamagePercent;
+      }
       
       projectiles.push(projectile);
     }

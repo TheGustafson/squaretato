@@ -444,7 +444,7 @@ export const BALANCE = {
       name: 'Wave Gun',
       cost: 180,  // Reduced from 225
       fireRate: 1.5,
-      damageMultiplier: 2.8,
+      damageMultiplier: 4.5,  // Increased from 2.8 for better damage
       projectileCount: 3,
       spread: 0,
       wavePattern: true,  // Projectiles move in sine wave

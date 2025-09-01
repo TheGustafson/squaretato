@@ -97,6 +97,9 @@ export class Weapon {
     if (id === 'boomerang') {
       this.boomerangDistance = (config.boomerangDistance || 200) + (upgrades.boomerangDistance || 0) * (level - 1);
     }
+    if (id === 'waveGun') {
+      this.waveAmplitude = 30 + (upgrades.waveAmplitude || 0) * (level - 1);
+    }
     if (id === 'gravityWell') {
       this.wellDuration = (config.wellDuration || 4) + (upgrades.wellDuration || 0) * (level - 1);
       this.wellRadius = (config.wellRadius || 120) + (upgrades.wellRadius || 0) * (level - 1);
@@ -463,7 +466,7 @@ export class WaveGun extends Weapon {
   fire(player, enemies, projectiles) {
     const damage = this.getDamage(player.stats || { damage: BALANCE.player.baseDamage });
     
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < this.projectileCount; i++) {
       const projectile = new Projectile(
         player.position.x,
         player.position.y,
@@ -473,8 +476,8 @@ export class WaveGun extends Weapon {
       projectile.damage = damage;
       projectile.piercing = true;
       projectile.waveMotion = true; // Custom sine wave motion
-      projectile.wavePhase = i * (Math.PI * 2 / 3); // Different phase for each
-      projectile.waveAmplitude = 30;
+      projectile.wavePhase = i * (Math.PI * 2 / this.projectileCount); // Different phase for each
+      projectile.waveAmplitude = this.waveAmplitude || 30;  // Use upgraded amplitude if available
       projectile.color = '#00FF00';
       projectile.size = 6;
       

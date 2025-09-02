@@ -1,0 +1,1 @@
+html,body{height:100%}body{margin:0;background:#000;display:grid;place-items:center;color:#0f0;font-family:Courier New,monospace}canvas{border:2px solid #00FF00;background:#000;image-rendering:crisp-edges;image-rendering:-webkit-crisp-edges;box-shadow:0 0 20px #0f03;transform:translateZ(0);backface-visibility:hidden}

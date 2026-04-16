@@ -1,5 +1,7 @@
 # Squaretato
 
+[![Play Squaretato](https://img.shields.io/badge/🎮_Play-Squaretato_Now-FF6666?style=for-the-badge)](https://thegustafson.github.io/squaretato/)
+
 ![Gameplay mechanics](https://img.shields.io/badge/Status-Active_Development-brightgreen) ![License](https://img.shields.io/badge/License-MIT-blue)
 
 **Squaretato** is a brutally fast, top-down geometric wave-survival game built strictly with JavaScript and Canvas. Drawing heavy inspiration from modern roguelite heavy-hitters like *Brotato* and *Vampire Survivors*, the game challenges you to survive increasingly dense floods of geometric swarms, collect dropped currency before it decays, and strategically rebuild your arsenal and stat-lines between rounds.

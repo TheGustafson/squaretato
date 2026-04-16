@@ -33,9 +33,9 @@ export class RoundStatsScreen {
 
   getLayout() {
     const padding = 40;
-    const titleY = this.canvas.height * 0.1;
-    const contentY = this.canvas.height * 0.2;
-    const continueButtonY = this.canvas.height - 60;
+    const titleY = this.canvas.logicalHeight * 0.1;
+    const contentY = this.canvas.logicalHeight * 0.2;
+    const continueButtonY = this.canvas.logicalHeight - 60;
     
     return {
       padding,
@@ -47,8 +47,8 @@ export class RoundStatsScreen {
 
   getMousePosition(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
+    const scaleX = this.canvas.logicalWidth / rect.width;
+    const scaleY = this.canvas.logicalHeight / rect.height;
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY
@@ -59,7 +59,7 @@ export class RoundStatsScreen {
     const pos = this.getMousePosition(e);
     const layout = this.getLayout();
     
-    const rightX = this.canvas.width - layout.padding - 150;
+    const rightX = this.canvas.logicalWidth - layout.padding - 150;
     this.continueHovered = pos.x >= rightX && 
                            pos.x <= rightX + 150 &&
                            pos.y >= layout.continueButtonY && 
@@ -81,16 +81,16 @@ export class RoundStatsScreen {
     
     // Clear
     ctx.fillStyle = COLORS.BACKGROUND;
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
     
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = 'bold 32px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('WAVE COMPLETE', this.canvas.width / 2, layout.titleY);
+    ctx.fillText('WAVE COMPLETE', this.canvas.logicalWidth / 2, layout.titleY);
     
     // Continue Button
-    const btnRightX = this.canvas.width - layout.padding - 150;
+    const btnRightX = this.canvas.logicalWidth - layout.padding - 150;
     ctx.strokeStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
     ctx.lineWidth = 2;
     ctx.strokeRect(btnRightX, layout.continueButtonY, 150, 40);
@@ -128,7 +128,7 @@ export class RoundStatsScreen {
     ctx.fillText(`Missed Funds : $${notCollected}`, leftX, y);
 
     // Middle Column: Weapon Stats
-    const midX = this.canvas.width / 2 - 60;
+    const midX = this.canvas.logicalWidth / 2 - 60;
     y = layout.contentY;
     
     ctx.font = '20px monospace';
@@ -163,7 +163,7 @@ export class RoundStatsScreen {
     }
 
     // Right Column: Kills by Enemy
-    const rightX = this.canvas.width - 250;
+    const rightX = this.canvas.logicalWidth - 250;
     y = layout.contentY;
 
     ctx.font = '20px monospace';

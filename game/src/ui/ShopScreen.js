@@ -46,9 +46,9 @@ export class ShopScreen {
     const titleY = 44;  // Fixed position (was 8% of 550 = 44px)
     const tabsY = 82;   // Fixed position (was 15% of 550 = 82px)
     const contentY = 137; // Fixed position (was 25% of 550 = 137px)
-    const continueButtonY = this.canvas.height - 60;  // 490px
+    const continueButtonY = this.canvas.logicalHeight - 60;  // 490px
     // Use all space from content start to bottom with small margin
-    const contentHeight = this.canvas.height - contentY - 25;  // 550 - 137 - 25 = 388px
+    const contentHeight = this.canvas.logicalHeight - contentY - 25;  // 550 - 137 - 25 = 388px
     const itemHeight = BALANCE.ui.shopItemHeight;
     const maxVisibleItems = Math.floor(contentHeight / itemHeight);
     
@@ -61,8 +61,8 @@ export class ShopScreen {
       contentHeight,
       itemHeight,
       maxVisibleItems,
-      itemWidth: this.canvas.width - padding * 4,
-      scrollbarX: this.canvas.width - padding - 10,
+      itemWidth: this.canvas.logicalWidth - padding * 4,
+      scrollbarX: this.canvas.logicalWidth - padding - 10,
       scrollbarWidth: 6,
       continueButtonY
     };
@@ -113,8 +113,8 @@ export class ShopScreen {
 
   getMousePosition(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
+    const scaleX = this.canvas.logicalWidth / rect.width;
+    const scaleY = this.canvas.logicalHeight / rect.height;
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY
@@ -127,8 +127,8 @@ export class ShopScreen {
     
     // Check back/continue button
     if (this.showContinueButton) {
-      this.continueHovered = pos.x >= this.canvas.width / 2 - 75 && 
-                             pos.x <= this.canvas.width / 2 + 75 &&
+      this.continueHovered = pos.x >= this.canvas.logicalWidth / 2 - 75 && 
+                             pos.x <= this.canvas.logicalWidth / 2 + 75 &&
                              pos.y >= layout.continueButtonY && 
                              pos.y <= layout.continueButtonY + 40;
       this.backHovered = false;
@@ -140,8 +140,8 @@ export class ShopScreen {
     
     // Check tabs
     const tabWidth = 150;
-    const weaponsTabX = this.canvas.width / 2 - tabWidth - 10;
-    const itemsTabX = this.canvas.width / 2 + 10;
+    const weaponsTabX = this.canvas.logicalWidth / 2 - tabWidth - 10;
+    const itemsTabX = this.canvas.logicalWidth / 2 + 10;
     
     if (pos.y >= layout.tabsY && pos.y <= layout.tabsY + 40) {
       if (pos.x >= weaponsTabX && pos.x <= weaponsTabX + tabWidth) {
@@ -519,18 +519,18 @@ export class ShopScreen {
     
     // Clear background
     ctx.fillStyle = COLORS.BACKGROUND;
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
     
     // Back button or Continue button
     if (this.showContinueButton) {
       // Show Continue button at bottom center
       ctx.strokeStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
       ctx.lineWidth = 2;
-      ctx.strokeRect(this.canvas.width / 2 - 75, layout.continueButtonY, 150, 40);
+      ctx.strokeRect(this.canvas.logicalWidth / 2 - 75, layout.continueButtonY, 150, 40);
       ctx.fillStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
       ctx.font = '16px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('CONTINUE', this.canvas.width / 2, layout.continueButtonY + 25);
+      ctx.fillText('CONTINUE', this.canvas.logicalWidth / 2, layout.continueButtonY + 25);
     } else {
       // Show Back button at top left
       ctx.strokeStyle = this.backHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
@@ -546,7 +546,7 @@ export class ShopScreen {
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = 'bold 32px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('SHOP', this.canvas.width / 2, layout.titleY);
+    ctx.fillText('SHOP', this.canvas.logicalWidth / 2, layout.titleY);
     
     // Weapon slots indicator (only show for weapons tab)
     if (this.activeTab === 'weapons') {
@@ -568,13 +568,13 @@ export class ShopScreen {
     ctx.font = '20px monospace';
     ctx.fillStyle = '#FFD700';
     ctx.textAlign = 'right';
-    ctx.fillText(`$${this.gameState.playerData.money}`, this.canvas.width - layout.padding, layout.titleY);
+    ctx.fillText(`$${this.gameState.playerData.money}`, this.canvas.logicalWidth - layout.padding, layout.titleY);
     
     // Tabs
     const tabWidth = 150;
     const tabHeight = 40;
-    const weaponsTabX = this.canvas.width / 2 - tabWidth - 10;
-    const itemsTabX = this.canvas.width / 2 + 10;
+    const weaponsTabX = this.canvas.logicalWidth / 2 - tabWidth - 10;
+    const itemsTabX = this.canvas.logicalWidth / 2 + 10;
     
     // Weapons tab
     ctx.fillStyle = this.activeTab === 'weapons' ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
@@ -600,7 +600,7 @@ export class ShopScreen {
     // Content area
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, layout.contentY, this.canvas.width, layout.contentHeight);
+    ctx.rect(0, layout.contentY, this.canvas.logicalWidth, layout.contentHeight);
     ctx.clip();
     
     // Render items

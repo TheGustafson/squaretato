@@ -111,8 +111,8 @@ export class Game {
   setupMouseTracking() {
     this.#canvas.addEventListener('mousemove', (e) => {
       const rect = this.#canvas.getBoundingClientRect();
-      const scaleX = this.#canvas.width / rect.width;
-      const scaleY = this.#canvas.height / rect.height;
+      const scaleX = this.#canvas.logicalWidth / rect.width;
+      const scaleY = this.#canvas.logicalHeight / rect.height;
       this.#mousePosition = {
         x: (e.clientX - rect.left) * scaleX,
         y: (e.clientY - rect.top) * scaleY,
@@ -219,7 +219,7 @@ export class Game {
     this.#weaponDamageStats.clear();
     
     // Initialize player with upgraded stats (in game area, not full canvas)
-    this.#player = new Player(this.#canvas.width / 2, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2);
+    this.#player = new Player(this.#canvas.logicalWidth / 2, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2);
     this.#player.health = this.#gameState.playerData.stats.health;
     this.#player.maxHealth = this.#gameState.playerData.stats.health;
     this.#player.speed = this.#gameState.playerData.stats.speed;
@@ -264,7 +264,7 @@ export class Game {
     this.#delayedRageTimer = 3.0;
     
     // Spawn baseline corner trackers immediately natively
-    const w = this.#canvas.width;
+    const w = this.#canvas.logicalWidth;
     const h = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT;
     this.#enemies.push(new Enemy(20, h - 20, 'tracker', level));
     this.#enemies.push(new Enemy(w - 20, h - 20, 'tracker', level));
@@ -404,18 +404,18 @@ export class Game {
       deltaTime,
       this.#input,
       this.#mousePosition,
-      this.#canvas.width,
+      this.#canvas.logicalWidth,
       GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT,
       GAME_CONFIG.UI_BAR_HEIGHT
     );
 
     // Update spawn system (use game area height) - pass player and projectiles for new enemy types
-    this.#spawnSystem.update(deltaTime, this.#enemies, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles);
+    this.#spawnSystem.update(deltaTime, this.#enemies, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles);
 
     if (this.#delayedRageTimer > 0) {
       this.#delayedRageTimer -= deltaTime;
       if (this.#delayedRageTimer <= 0) {
-        const w = this.#canvas.width;
+        const w = this.#canvas.logicalWidth;
         const h = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT;
         const pts = [
           {x: 20, y: GAME_CONFIG.UI_BAR_HEIGHT + 20},
@@ -450,7 +450,7 @@ export class Game {
     // Update enemies - pass player, projectiles, and enemies array for AI behaviors
     for (let i = this.#enemies.length - 1; i >= 0; i--) {
       const enemy = this.#enemies[i];
-      enemy.update(deltaTime, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles, this.#enemies);
+      enemy.update(deltaTime, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles, this.#enemies);
 
       // Check collision with player
       if (enemy.checkCollision(this.#player)) {
@@ -557,7 +557,7 @@ export class Game {
     // Update projectiles
     for (let i = this.#projectiles.length - 1; i >= 0; i--) {
       const projectile = this.#projectiles[i];
-      projectile.update(deltaTime, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#enemies);
+      projectile.update(deltaTime, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#enemies);
 
       // Check collision based on projectile owner
       if (projectile.owner === 'player') {
@@ -839,18 +839,18 @@ export class Game {
     
     // Clear canvas
     this.#ctx.fillStyle = COLORS.BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, this.#canvas.logicalHeight);
     
     // Draw UI bar background
     this.#ctx.fillStyle = COLORS.UI_BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     
     // Draw separator line
     this.#ctx.strokeStyle = COLORS.UI_BORDER;
     this.#ctx.lineWidth = 2;
     this.#ctx.beginPath();
     this.#ctx.moveTo(0, GAME_CONFIG.UI_BAR_HEIGHT);
-    this.#ctx.lineTo(this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.lineTo(this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     this.#ctx.stroke();
 
     // Draw grid (in game area only)
@@ -875,18 +875,18 @@ export class Game {
     const gridSize = 50;
 
     // Draw vertical lines
-    for (let x = 0; x <= this.#canvas.width; x += gridSize) {
+    for (let x = 0; x <= this.#canvas.logicalWidth; x += gridSize) {
       this.#ctx.beginPath();
       this.#ctx.moveTo(x, GAME_CONFIG.UI_BAR_HEIGHT);
-      this.#ctx.lineTo(x, this.#canvas.height);
+      this.#ctx.lineTo(x, this.#canvas.logicalHeight);
       this.#ctx.stroke();
     }
 
     // Draw horizontal lines (starting from UI bar)
-    for (let y = GAME_CONFIG.UI_BAR_HEIGHT; y <= this.#canvas.height; y += gridSize) {
+    for (let y = GAME_CONFIG.UI_BAR_HEIGHT; y <= this.#canvas.logicalHeight; y += gridSize) {
       this.#ctx.beginPath();
       this.#ctx.moveTo(0, y);
-      this.#ctx.lineTo(this.#canvas.width, y);
+      this.#ctx.lineTo(this.#canvas.logicalWidth, y);
       this.#ctx.stroke();
     }
   }
@@ -960,21 +960,21 @@ export class Game {
     this.#ctx.fillStyle = COLORS.UI_TEXT;
     this.#ctx.font = 'bold 20px monospace';
     this.#ctx.textAlign = 'center';
-    this.#ctx.fillText(`STAGE ${this.#gameState.currentLevel}`, this.#canvas.width / 2, barY + 5);
+    this.#ctx.fillText(`STAGE ${this.#gameState.currentLevel}`, this.#canvas.logicalWidth / 2, barY + 5);
     
     const timeRemaining = Math.ceil(this.#roundTimer);
     this.#ctx.font = 'bold 32px monospace';
     this.#ctx.fillStyle = timeRemaining <= 10 ? '#FF0000' : COLORS.UI_TEXT;
-    this.#ctx.fillText(`${timeRemaining}`, this.#canvas.width / 2, barY + 40);
+    this.#ctx.fillText(`${timeRemaining}`, this.#canvas.logicalWidth / 2, barY + 40);
     this.#ctx.font = '12px monospace';
-    this.#ctx.fillText('seconds', this.#canvas.width / 2, barY + 55);
+    this.#ctx.fillText('seconds', this.#canvas.logicalWidth / 2, barY + 55);
     
     // Right section - Stats
     this.#ctx.textAlign = 'right';
     this.#ctx.font = '12px monospace';
     this.#ctx.fillStyle = COLORS.UI_TEXT;
     
-    const rightX = this.#canvas.width - 20;
+    const rightX = this.#canvas.logicalWidth - 20;
     this.#ctx.fillText(`Enemies: ${this.#enemies.length}`, rightX, barY);
     
     // Weapons and items count
@@ -1010,12 +1010,12 @@ export class Game {
     this.#ctx.font = '32px monospace';
     this.#ctx.textAlign = 'center';
     const centerY = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2;
-    this.#ctx.fillText('ROUND COMPLETE!', this.#canvas.width / 2, centerY - 40);
+    this.#ctx.fillText('ROUND COMPLETE!', this.#canvas.logicalWidth / 2, centerY - 40);
 
     this.#ctx.font = '20px monospace';
     this.#ctx.fillText(
       `Money Earned: $${this.#moneyEarned}`,
-      this.#canvas.width / 2,
+      this.#canvas.logicalWidth / 2,
       centerY + 10
     );
   }
@@ -1025,28 +1025,28 @@ export class Game {
     this.#ctx.font = '48px monospace';
     this.#ctx.textAlign = 'center';
     const centerY = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2;
-    this.#ctx.fillText('GAME OVER', this.#canvas.width / 2, centerY);
+    this.#ctx.fillText('GAME OVER', this.#canvas.logicalWidth / 2, centerY);
 
     this.#ctx.fillStyle = COLORS.UI_TEXT;
     this.#ctx.font = '20px monospace';
-    this.#ctx.fillText('Restarting...', this.#canvas.width / 2, centerY + 40);
+    this.#ctx.fillText('Restarting...', this.#canvas.logicalWidth / 2, centerY + 40);
   }
   
   renderGame() {
     // Clear canvas
     this.#ctx.fillStyle = COLORS.BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, this.#canvas.logicalHeight);
     
     // Draw UI bar background
     this.#ctx.fillStyle = COLORS.UI_BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     
     // Draw separator line
     this.#ctx.strokeStyle = COLORS.UI_BORDER;
     this.#ctx.lineWidth = 2;
     this.#ctx.beginPath();
     this.#ctx.moveTo(0, GAME_CONFIG.UI_BAR_HEIGHT);
-    this.#ctx.lineTo(this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.lineTo(this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     this.#ctx.stroke();
 
     // Draw grid (in game area only)
@@ -1089,18 +1089,18 @@ export class Game {
   renderGameState() {
     // Render the basic game state (used as background for upgrade screen)
     this.#ctx.fillStyle = COLORS.BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, this.#canvas.logicalHeight);
     
     // Draw UI bar
     this.#ctx.fillStyle = COLORS.UI_BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     
     // Draw separator
     this.#ctx.strokeStyle = COLORS.UI_BORDER;
     this.#ctx.lineWidth = 2;
     this.#ctx.beginPath();
     this.#ctx.moveTo(0, GAME_CONFIG.UI_BAR_HEIGHT);
-    this.#ctx.lineTo(this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.lineTo(this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     this.#ctx.stroke();
     
     // Draw grid

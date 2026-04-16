@@ -13,7 +13,7 @@ export class VirtualJoystick {
     if (this.active) return;
     
     // Only activate if touch is on the left half of the screen
-    if (scaledX < this.canvas.width / 2) {
+    if (scaledX < this.canvas.logicalWidth / 2) {
       this.active = true;
       this.touchId = touch.identifier;
       this.origin = { x: scaledX, y: scaledY };

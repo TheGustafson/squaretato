@@ -29,14 +29,14 @@ export class PauseMenu {
 
   onMouseMove(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
+    const scaleX = this.canvas.logicalWidth / rect.width;
+    const scaleY = this.canvas.logicalHeight / rect.height;
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
     
-    const centerX = this.canvas.width / 2;
-    const resumeY = this.canvas.height * 0.4;
-    const mainMenuY = this.canvas.height * 0.5;
+    const centerX = this.canvas.logicalWidth / 2;
+    const resumeY = this.canvas.logicalHeight * 0.4;
+    const mainMenuY = this.canvas.logicalHeight * 0.5;
     
     // Check resume button
     this.resumeHovered = x >= centerX - 100 && x <= centerX + 100 &&
@@ -73,22 +73,22 @@ export class PauseMenu {
   render(ctx) {
     // Dark overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
     
     // Paused text
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = 'bold 36px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height * 0.3);
+    ctx.fillText('PAUSED', this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.3);
     
     ctx.font = '14px monospace';
     ctx.fillStyle = COLORS.UI_INACTIVE;
-    ctx.fillText('(Press ESC to resume)', this.canvas.width / 2, this.canvas.height * 0.33);
+    ctx.fillText('(Press ESC to resume)', this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.33);
     
-    const centerX = this.canvas.width / 2;
+    const centerX = this.canvas.logicalWidth / 2;
     
     // Resume button
-    const resumeY = this.canvas.height * 0.4;
+    const resumeY = this.canvas.logicalHeight * 0.4;
     ctx.strokeStyle = this.resumeHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
     ctx.lineWidth = 2;
     ctx.strokeRect(centerX - 100, resumeY, 200, 40);
@@ -98,7 +98,7 @@ export class PauseMenu {
     ctx.fillText('RESUME', centerX, resumeY + 25);
     
     // Main Menu button
-    const mainMenuY = this.canvas.height * 0.5;
+    const mainMenuY = this.canvas.logicalHeight * 0.5;
     ctx.strokeStyle = this.mainMenuHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
     ctx.strokeRect(centerX - 100, mainMenuY, 200, 40);
     

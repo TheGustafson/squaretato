@@ -18,11 +18,11 @@ export class CharacterScreen {
   getLayout() {
     const padding = 20;
     const backButtonY = padding;
-    const titleY = this.canvas.height * 0.1;
-    const statsY = this.canvas.height * 0.2;
-    const upgradesY = this.canvas.height * 0.35;
+    const titleY = this.canvas.logicalHeight * 0.1;
+    const statsY = this.canvas.logicalHeight * 0.2;
+    const upgradesY = this.canvas.logicalHeight * 0.35;
     const upgradeBoxSpacing = 60;  // Space between boxes
-    const visibleHeight = this.canvas.height - upgradesY - 50;  // Visible area for upgrades
+    const visibleHeight = this.canvas.logicalHeight - upgradesY - 50;  // Visible area for upgrades
     const maxVisibleItems = Math.floor(visibleHeight / upgradeBoxSpacing);
     
     return {
@@ -36,7 +36,7 @@ export class CharacterScreen {
       upgradeBoxSpacing,
       maxVisibleItems,
       visibleHeight,
-      continueButtonY: this.canvas.height - 60,
+      continueButtonY: this.canvas.logicalHeight - 60,
     };
   }
 
@@ -67,8 +67,8 @@ export class CharacterScreen {
 
   onMouseMove(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
+    const scaleX = this.canvas.logicalWidth / rect.width;
+    const scaleY = this.canvas.logicalHeight / rect.height;
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
     const layout = this.getLayout();
@@ -79,7 +79,7 @@ export class CharacterScreen {
     for (let i = 0; i < upgrades.length; i++) {
       const y1 = layout.upgradesY + i * layout.upgradeBoxSpacing - this.scrollOffset;
       // Only check if the box is visible
-      if (y1 >= layout.upgradesY - layout.upgradeBoxHeight && y1 <= this.canvas.height) {
+      if (y1 >= layout.upgradesY - layout.upgradeBoxHeight && y1 <= this.canvas.logicalHeight) {
         if (x >= 50 && x <= 50 + layout.upgradeBoxWidth && y >= y1 && y <= y1 + layout.upgradeBoxHeight) {
           this.selectedUpgrade = i;
           break;
@@ -93,7 +93,7 @@ export class CharacterScreen {
 
     // Check continue button if active
     if (this.showContinueButton) {
-      const rightX = this.canvas.width - layout.padding - 150;
+      const rightX = this.canvas.logicalWidth - layout.padding - 150;
       this.continueHovered = x >= rightX && 
                              x <= rightX + 150 &&
                              y >= layout.continueButtonY && 
@@ -196,7 +196,7 @@ export class CharacterScreen {
     
     // Clear
     ctx.fillStyle = COLORS.BACKGROUND;
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
 
     // Back button
     ctx.strokeStyle = this.backHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
@@ -209,7 +209,7 @@ export class CharacterScreen {
 
     // Continue button if active
     if (this.showContinueButton) {
-      const rightX = this.canvas.width - layout.padding - 150;
+      const rightX = this.canvas.logicalWidth - layout.padding - 150;
       ctx.strokeStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
       ctx.lineWidth = 2;
       ctx.strokeRect(rightX, layout.continueButtonY, 150, 40);
@@ -223,7 +223,7 @@ export class CharacterScreen {
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = 'bold 32px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('STAT UPGRADES', this.canvas.width / 2, layout.titleY);
+    ctx.fillText('STAT UPGRADES', this.canvas.logicalWidth / 2, layout.titleY);
 
     // Current stats
     const stats = this.gameState.playerData.stats;
@@ -231,7 +231,7 @@ export class CharacterScreen {
     ctx.textAlign = 'left';
     ctx.fillStyle = COLORS.UI_TEXT;
     
-    const statsX = this.canvas.width - 280;
+    const statsX = this.canvas.logicalWidth - 280;
     ctx.fillText('CURRENT STATS', statsX, layout.statsY);
     ctx.font = '14px monospace';
     ctx.fillText(`Health: ${stats.health}`, statsX, layout.statsY + 30);
@@ -262,7 +262,7 @@ export class CharacterScreen {
     // Create clipping region for upgrades
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, layout.upgradesY, this.canvas.width, layout.visibleHeight);
+    ctx.rect(0, layout.upgradesY, this.canvas.logicalWidth, layout.visibleHeight);
     ctx.clip();
     
     // Draw upgrades with scroll offset
@@ -272,7 +272,7 @@ export class CharacterScreen {
       const y = layout.upgradesY + i * layout.upgradeBoxSpacing - this.scrollOffset;
       
       // Skip if outside visible area
-      if (y + layout.upgradeBoxHeight < layout.upgradesY || y > this.canvas.height) {
+      if (y + layout.upgradeBoxHeight < layout.upgradesY || y > this.canvas.logicalHeight) {
         continue;
       }
       

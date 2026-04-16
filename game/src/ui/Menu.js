@@ -32,13 +32,13 @@ export class Menu {
   getLayout() {
     // Dynamic layout based on canvas size
     const padding = 20;
-    const titleY = this.canvas.height * 0.11;
+    const titleY = this.canvas.logicalHeight * 0.11;
     const subtitleY = titleY + 30;
-    const gridStartY = this.canvas.height * 0.22;
-    const buttonAreaY = this.canvas.height * 0.73;
+    const gridStartY = this.canvas.logicalHeight * 0.22;
+    const buttonAreaY = this.canvas.logicalHeight * 0.73;
     const buttonHeight = 40;
     const buttonWidth = 150;
-    const statsAreaY = this.canvas.height * 0.85;
+    const statsAreaY = this.canvas.logicalHeight * 0.85;
     
     return {
       padding,
@@ -49,14 +49,14 @@ export class Menu {
       buttonHeight,
       buttonWidth,
       statsAreaY,
-      gridStartX: (this.canvas.width - (this.gridCols * (this.levelBoxSize + this.levelBoxSpacing) - this.levelBoxSpacing)) / 2
+      gridStartX: (this.canvas.logicalWidth - (this.gridCols * (this.levelBoxSize + this.levelBoxSpacing) - this.levelBoxSpacing)) / 2
     };
   }
 
   getMousePosition(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
+    const scaleX = this.canvas.logicalWidth / rect.width;
+    const scaleY = this.canvas.logicalHeight / rect.height;
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY
@@ -83,7 +83,7 @@ export class Menu {
     }
 
     // Check button hovers - three buttons now
-    const centerX = this.canvas.width / 2 - layout.buttonWidth / 2;
+    const centerX = this.canvas.logicalWidth / 2 - layout.buttonWidth / 2;
     
     if (x >= layout.padding && x <= layout.padding + layout.buttonWidth && 
         y >= layout.buttonAreaY && y <= layout.buttonAreaY + layout.buttonHeight) {
@@ -91,8 +91,8 @@ export class Menu {
     } else if (x >= centerX && x <= centerX + layout.buttonWidth && 
                y >= layout.buttonAreaY && y <= layout.buttonAreaY + layout.buttonHeight) {
       return { type: 'button', value: 'shop' };
-    } else if (x >= this.canvas.width - layout.padding - layout.buttonWidth && 
-               x <= this.canvas.width - layout.padding && 
+    } else if (x >= this.canvas.logicalWidth - layout.padding - layout.buttonWidth && 
+               x <= this.canvas.logicalWidth - layout.padding && 
                y >= layout.buttonAreaY && y <= layout.buttonAreaY + layout.buttonHeight) {
       return { type: 'button', value: 'settings' };
     }
@@ -157,17 +157,17 @@ export class Menu {
     
     // Clear (use full canvas)
     ctx.fillStyle = COLORS.BACKGROUND;
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
 
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = 'bold 48px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('SQUARETATO', this.canvas.width / 2, layout.titleY);
+    ctx.fillText('SQUARETATO', this.canvas.logicalWidth / 2, layout.titleY);
 
     // Subtitle
     ctx.font = '16px monospace';
-    ctx.fillText('SELECT LEVEL', this.canvas.width / 2, layout.subtitleY);
+    ctx.fillText('SELECT LEVEL', this.canvas.logicalWidth / 2, layout.subtitleY);
 
     // Level grid
     for (let row = 0; row < this.gridRows; row++) {
@@ -272,19 +272,19 @@ export class Menu {
     ctx.fillText('UPGRADES', layout.padding + layout.buttonWidth / 2, layout.buttonAreaY + layout.buttonHeight / 2 + 5);
 
     // Shop button (center)
-    const centerX = this.canvas.width / 2 - layout.buttonWidth / 2;
+    const centerX = this.canvas.logicalWidth / 2 - layout.buttonWidth / 2;
     ctx.strokeStyle = this.selectedOption === 'shop' ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
     ctx.strokeRect(centerX, layout.buttonAreaY, layout.buttonWidth, layout.buttonHeight);
     
     ctx.fillStyle = this.selectedOption === 'shop' ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.fillText('SHOP', this.canvas.width / 2, layout.buttonAreaY + layout.buttonHeight / 2 + 5);
+    ctx.fillText('SHOP', this.canvas.logicalWidth / 2, layout.buttonAreaY + layout.buttonHeight / 2 + 5);
 
     // Settings button (right)
     ctx.strokeStyle = this.selectedOption === 'settings' ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.strokeRect(this.canvas.width - layout.padding - layout.buttonWidth, layout.buttonAreaY, layout.buttonWidth, layout.buttonHeight);
+    ctx.strokeRect(this.canvas.logicalWidth - layout.padding - layout.buttonWidth, layout.buttonAreaY, layout.buttonWidth, layout.buttonHeight);
     
     ctx.fillStyle = this.selectedOption === 'settings' ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.fillText('SETTINGS', this.canvas.width - layout.padding - layout.buttonWidth / 2, layout.buttonAreaY + layout.buttonHeight / 2 + 5);
+    ctx.fillText('SETTINGS', this.canvas.logicalWidth - layout.padding - layout.buttonWidth / 2, layout.buttonAreaY + layout.buttonHeight / 2 + 5);
 
     // Stats display
     ctx.fillStyle = COLORS.UI_TEXT;

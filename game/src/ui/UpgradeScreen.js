@@ -114,15 +114,15 @@ export class UpgradeScreen {
 
   getLayout() {
     const padding = 40;
-    const titleY = this.canvas.height * 0.15;
-    const cardsY = this.canvas.height * 0.35;
+    const titleY = this.canvas.logicalHeight * 0.15;
+    const cardsY = this.canvas.logicalHeight * 0.35;
     const cardWidth = 140;
     const cardHeight = 200;
     const cardSpacing = 30;
     const totalWidth = cardWidth * 4 + cardSpacing * 3;
-    const startX = (this.canvas.width - totalWidth) / 2;
-    const rerollY = this.canvas.height * 0.75;
-    const skipY = this.canvas.height * 0.85;
+    const startX = (this.canvas.logicalWidth - totalWidth) / 2;
+    const rerollY = this.canvas.logicalHeight * 0.75;
+    const skipY = this.canvas.logicalHeight * 0.85;
     
     return {
       padding,
@@ -141,8 +141,8 @@ export class UpgradeScreen {
 
   getMousePosition(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
+    const scaleX = this.canvas.logicalWidth / rect.width;
+    const scaleY = this.canvas.logicalHeight / rect.height;
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY
@@ -167,7 +167,7 @@ export class UpgradeScreen {
     }
     
     // Check reroll button
-    const rerollX = this.canvas.width / 2 - layout.buttonWidth - 20;
+    const rerollX = this.canvas.logicalWidth / 2 - layout.buttonWidth - 20;
     if (this.canReroll && 
         pos.x >= rerollX && pos.x <= rerollX + layout.buttonWidth &&
         pos.y >= layout.rerollY && pos.y <= layout.rerollY + layout.buttonHeight) {
@@ -176,7 +176,7 @@ export class UpgradeScreen {
     }
     
     // Check skip button
-    const skipX = this.canvas.width / 2 + 20;
+    const skipX = this.canvas.logicalWidth / 2 + 20;
     if (pos.x >= skipX && pos.x <= skipX + layout.buttonWidth &&
         pos.y >= layout.rerollY && pos.y <= layout.rerollY + layout.buttonHeight) {
       this.hoveredOption = { type: 'skip' };
@@ -282,18 +282,18 @@ export class UpgradeScreen {
     
     // Dark overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
     
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = 'bold 36px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('CHOOSE AN UPGRADE', this.canvas.width / 2, layout.titleY);
+    ctx.fillText('CHOOSE AN UPGRADE', this.canvas.logicalWidth / 2, layout.titleY);
     
     // Subtitle
     ctx.font = '16px monospace';
     ctx.fillStyle = COLORS.UI_INACTIVE;
-    ctx.fillText('Select one upgrade to improve your character', this.canvas.width / 2, layout.titleY + 30);
+    ctx.fillText('Select one upgrade to improve your character', this.canvas.logicalWidth / 2, layout.titleY + 30);
     
     // Render upgrade cards
     for (let i = 0; i < this.upgrades.length; i++) {
@@ -333,7 +333,7 @@ export class UpgradeScreen {
     }
     
     // Reroll button
-    const rerollX = this.canvas.width / 2 - layout.buttonWidth - 20;
+    const rerollX = this.canvas.logicalWidth / 2 - layout.buttonWidth - 20;
     const rerollCost = BALANCE.endWaveUpgrades.rerollCost * (this.rerollsUsed + 1);
     const canAffordReroll = this.gameState.playerData.money >= rerollCost;
     const isRerollHovered = this.hoveredOption?.type === 'reroll';
@@ -350,7 +350,7 @@ export class UpgradeScreen {
     }
     
     // Skip button
-    const skipX = this.canvas.width / 2 + 20;
+    const skipX = this.canvas.logicalWidth / 2 + 20;
     const isSkipHovered = this.hoveredOption?.type === 'skip';
     
     ctx.strokeStyle = isSkipHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
@@ -365,7 +365,7 @@ export class UpgradeScreen {
     ctx.font = '16px monospace';
     ctx.textAlign = 'right';
     ctx.fillStyle = '#FFD700';
-    ctx.fillText(`Money: $${this.gameState.playerData.money}`, this.canvas.width - layout.padding, layout.padding);
+    ctx.fillText(`Money: $${this.gameState.playerData.money}`, this.canvas.logicalWidth - layout.padding, layout.padding);
   }
 
   wrapText(text, maxWidth) {

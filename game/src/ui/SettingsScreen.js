@@ -26,8 +26,8 @@ export class SettingsScreen {
 
   onMouseMove(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
+    const scaleX = this.canvas.logicalWidth / rect.width;
+    const scaleY = this.canvas.logicalHeight / rect.height;
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
@@ -47,8 +47,8 @@ export class SettingsScreen {
     }
 
     // Reset data button
-    this.resetHovered = x >= this.canvas.width / 2 - 100 && 
-                        x <= this.canvas.width / 2 + 100 && 
+    this.resetHovered = x >= this.canvas.logicalWidth / 2 - 100 && 
+                        x <= this.canvas.logicalWidth / 2 + 100 && 
                         y >= 380 && y <= 420;
   }
 
@@ -81,7 +81,7 @@ export class SettingsScreen {
   render(ctx) {
     // Clear
     ctx.fillStyle = COLORS.BACKGROUND;
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
 
     // Back button
     ctx.strokeStyle = this.backHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
@@ -96,11 +96,11 @@ export class SettingsScreen {
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = 'bold 32px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('SETTINGS', this.canvas.width / 2, 60);
+    ctx.fillText('SETTINGS', this.canvas.logicalWidth / 2, 60);
 
     // Control scheme
     ctx.font = '20px monospace';
-    ctx.fillText('CONTROL SCHEME', this.canvas.width / 2, 120);
+    ctx.fillText('CONTROL SCHEME', this.canvas.logicalWidth / 2, 120);
 
     // Mouse option
     const isMouseActive = this.gameState.playerData.controlScheme === CONTROL_SCHEMES.MOUSE;
@@ -126,7 +126,7 @@ export class SettingsScreen {
     // Aim Mode title
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = '20px monospace';
-    ctx.fillText('AIM MODE', this.canvas.width / 2, 220);
+    ctx.fillText('AIM MODE', this.canvas.logicalWidth / 2, 220);
 
     // Aim Auto option
     const isAimAuto = this.gameState.playerData.aimMode === 'auto';
@@ -152,20 +152,20 @@ export class SettingsScreen {
     // Instructions
     ctx.font = '14px monospace';
     ctx.fillStyle = COLORS.UI_INACTIVE;
-    ctx.fillText('Mouse: Follows cursor | WASD: Use Keys/Joystick', this.canvas.width / 2, 310);
-    ctx.fillText('Auto Aim: Nearest enemy | Manual Aim: Mouse cursor', this.canvas.width / 2, 330);
+    ctx.fillText('Mouse: Follows cursor | WASD: Use Keys/Joystick', this.canvas.logicalWidth / 2, 310);
+    ctx.fillText('Auto Aim: Nearest enemy | Manual Aim: Mouse cursor', this.canvas.logicalWidth / 2, 330);
 
     // Reset button (danger)
     ctx.strokeStyle = this.resetHovered ? '#FF0000' : '#660000';
     ctx.lineWidth = 2;
-    ctx.strokeRect(this.canvas.width / 2 - 100, 380, 200, 40);
+    ctx.strokeRect(this.canvas.logicalWidth / 2 - 100, 380, 200, 40);
     ctx.fillStyle = this.resetHovered ? '#FF0000' : '#660000';
     ctx.font = '16px monospace';
-    ctx.fillText('RESET PROGRESS', this.canvas.width / 2, 405);
+    ctx.fillText('RESET PROGRESS', this.canvas.logicalWidth / 2, 405);
 
     // Controls info
     ctx.fillStyle = COLORS.UI_TEXT;
     ctx.font = '14px monospace';
-    ctx.fillText('Press ESC during game to return to menu', this.canvas.width / 2, 460);
+    ctx.fillText('Press ESC during game to return to menu', this.canvas.logicalWidth / 2, 460);
   }
 }

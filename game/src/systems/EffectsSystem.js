@@ -477,7 +477,7 @@ export class EffectsSystem {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.fillStyle = flash.color;
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
       ctx.restore();
     }
   }

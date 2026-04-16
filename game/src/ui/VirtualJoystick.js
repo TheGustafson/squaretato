@@ -12,14 +12,12 @@ export class VirtualJoystick {
   handleTouchStart(touch, scaledX, scaledY) {
     if (this.active) return;
     
-    // Only activate if touch is on the left half of the screen
-    if (scaledX < this.canvas.logicalWidth / 2) {
-      this.active = true;
-      this.touchId = touch.identifier;
-      this.origin = { x: scaledX, y: scaledY };
-      this.current = { x: scaledX, y: scaledY };
-      this.updateVector();
-    }
+    // Activate joystick absolutely anywhere structurally on mobile layout natively
+    this.active = true;
+    this.touchId = touch.identifier;
+    this.origin = { x: scaledX, y: scaledY };
+    this.current = { x: scaledX, y: scaledY };
+    this.updateVector();
   }
 
   handleTouchMove(touch, scaledX, scaledY) {

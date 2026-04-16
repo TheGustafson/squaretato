@@ -44,6 +44,7 @@ export class Game {
   #vacuumActive;
   #vacuumDuration;
   #joystick;
+  #lastTouchY = null;
 
   constructor(canvas, ctx, input) {
     this.#canvas = canvas;
@@ -138,10 +139,11 @@ export class Game {
         const sx = (t.clientX - rect.left) * scaleX;
         const sy = (t.clientY - rect.top) * scaleY;
         
-        if (sx < this.#canvas.logicalWidth / 2) {
+        if (this.#gameState.getState() === GAME_STATES.PLAYING && !this.#isPaused) {
           this.#joystick.handleTouchStart(t, sx, sy);
         } else {
           this.#mousePosition = { x: sx, y: sy };
+          this.#lastTouchY = sy;
         }
       }
     }, { passive: false });
@@ -157,10 +159,24 @@ export class Game {
         const sx = (t.clientX - rect.left) * scaleX;
         const sy = (t.clientY - rect.top) * scaleY;
         
-        if (t.identifier === this.#joystick.touchId) {
-          this.#joystick.handleTouchMove(t, sx, sy);
+        if (this.#gameState.getState() === GAME_STATES.PLAYING && !this.#isPaused) {
+          if (t.identifier === this.#joystick.touchId || !this.#joystick.active) {
+            this.#joystick.handleTouchMove(t, sx, sy);
+          }
         } else {
           this.#mousePosition = { x: sx, y: sy };
+          if (this.#lastTouchY !== null) {
+            const deltaY = this.#lastTouchY - sy;
+            this.#lastTouchY = sy;
+            if (Math.abs(deltaY) > 0) {
+              const wheelEvent = new WheelEvent('wheel', { 
+                 deltaY: deltaY * 2, // arbitrary sensitivity multiplier structurally mapped cleanly
+                 clientX: t.clientX,
+                 clientY: t.clientY
+              });
+              this.#canvas.dispatchEvent(wheelEvent);
+            }
+          }
         }
       }
     }, { passive: false });
@@ -169,10 +185,13 @@ export class Game {
       if (this.#gameState.getState() === GAME_STATES.PLAYING) e.preventDefault();
       for(let i=0; i<e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        if (t.identifier === this.#joystick.touchId) {
-          this.#joystick.handleTouchEnd(t);
+        if (this.#gameState.getState() === GAME_STATES.PLAYING && !this.#isPaused) {
+          if (t.identifier === this.#joystick.touchId) {
+            this.#joystick.handleTouchEnd(t);
+          }
         } else {
-          this.#mousePosition = null; // Removed finger from right side
+          this.#mousePosition = null; 
+          this.#lastTouchY = null;
         }
       }
     }, { passive: false });

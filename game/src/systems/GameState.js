@@ -55,6 +55,7 @@ export class GameState {
       weaponLevels: { pistol: 1 }, // Track upgrade level for each weapon (1-4)
       items: [], // unique items/perks purchased
       controlScheme: 'MOUSE',
+      aimMode: 'auto',
     };
   }
 
@@ -93,6 +94,7 @@ export class GameState {
       weaponLevels: { pistol: 1 },
       items: [],
       controlScheme: this.playerData.controlScheme, // Keep control preference
+      aimMode: this.playerData.aimMode || 'auto', // Keep aim mode preference
     };
     this.savePlayerData();
   }

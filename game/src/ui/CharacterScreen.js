@@ -8,6 +8,8 @@ export class CharacterScreen {
     this.selectedUpgrade = null;
     this.scrollOffset = 0;
     this.maxScroll = 0;
+    this.showContinueButton = false;
+    this.continueHovered = false;
     // Upgrades will be generated dynamically based on purchase count
 
     this.setupEventListeners();
@@ -34,6 +36,7 @@ export class CharacterScreen {
       upgradeBoxSpacing,
       maxVisibleItems,
       visibleHeight,
+      continueButtonY: this.canvas.height - 60,
     };
   }
 
@@ -87,12 +90,30 @@ export class CharacterScreen {
     // Check back button
     this.backHovered = x >= layout.padding && x <= layout.padding + 100 && 
                        y >= layout.backButtonY && y <= layout.backButtonY + 40;
+
+    // Check continue button if active
+    if (this.showContinueButton) {
+      const rightX = this.canvas.width - layout.padding - 150;
+      this.continueHovered = x >= rightX && 
+                             x <= rightX + 150 &&
+                             y >= layout.continueButtonY && 
+                             y <= layout.continueButtonY + 40;
+    } else {
+      this.continueHovered = false;
+    }
   }
 
   onClick(e) {
     if (this.backHovered) {
       this.onBackClick();
-    } else if (this.selectedUpgrade !== null) {
+      return;
+    }
+    if (this.showContinueButton && this.continueHovered) {
+      this.onContinueClick();
+      return;
+    }
+    
+    if (this.selectedUpgrade !== null) {
       const upgrades = this.getUpgrades();
       this.purchaseUpgrade(upgrades[this.selectedUpgrade]);
     }
@@ -166,6 +187,10 @@ export class CharacterScreen {
     // This will be called when back is clicked
   }
 
+  onContinueClick() {
+    // This will be called when continue is clicked
+  }
+
   render(ctx) {
     const layout = this.getLayout();
     
@@ -181,6 +206,18 @@ export class CharacterScreen {
     ctx.font = '16px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('< BACK', layout.padding + 50, layout.backButtonY + 25);
+
+    // Continue button if active
+    if (this.showContinueButton) {
+      const rightX = this.canvas.width - layout.padding - 150;
+      ctx.strokeStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rightX, layout.continueButtonY, 150, 40);
+      ctx.fillStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
+      ctx.font = '16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('CONTINUE >', rightX + 75, layout.continueButtonY + 25);
+    }
 
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;

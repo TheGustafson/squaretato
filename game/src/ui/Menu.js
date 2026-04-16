@@ -247,6 +247,17 @@ export class Menu {
           ctx.fillStyle = '#00FF00';
           ctx.fillText('PLAY', boxX + this.levelBoxSize / 2, boxY + this.levelBoxSize - 8);
         }
+        
+        // Add special level indicators (FLOOD and BOSS)
+        if (level === 9 || level === 13 || level === 17 || level === 24 || level === 27) {
+          ctx.font = 'bold 10px monospace';
+          ctx.fillStyle = '#FF0000';
+          ctx.fillText('FLOOD', boxX + this.levelBoxSize / 2, boxY + 12);
+        } else if (level % 10 === 0) {
+          ctx.font = 'bold 10px monospace';
+          ctx.fillStyle = '#A020F0';
+          ctx.fillText('BOSS', boxX + this.levelBoxSize / 2, boxY + 12);
+        }
       }
     }
 

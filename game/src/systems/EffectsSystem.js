@@ -157,14 +157,13 @@ export class EffectsSystem {
     }
   }
 
-  // Explosion effect for rockets
   addExplosionEffect(x, y, radius = 50) {
     // Big flash
     this.addFlash('#FFA500', 0.2);
-    this.addScreenShake(6, 0.4);
+    this.addScreenShake(3, 0.2);
     
     // Ring of fire particles
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
       const angle = (Math.PI * 2 * i) / 20;
       const speed = 100 + Math.random() * 150;
       this.particles.push({
@@ -180,7 +179,7 @@ export class EffectsSystem {
     }
     
     // Smoke particles
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 30 + Math.random() * 50;
       this.particles.push({

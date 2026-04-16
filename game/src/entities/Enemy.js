@@ -28,6 +28,27 @@ export class Enemy extends Entity {
     this.moneyDropChance = stats.moneyDropChance;
     this.moneyValue = stats.moneyValue;
     
+    // Enraged logic targeting 10% of standard trackers uniformly
+    this.isEnraged = false;
+    this.isSpeed = false;
+    if (this.type === 'tracker') {
+      if (Math.random() < 0.10) {
+        this.isEnraged = true;
+        this.color = '#FFAAAA'; // Bright red core for enraged glow
+        this.health = 0.1;
+        this.maxHealth = 0.1;
+        this.speed *= 3.0;
+        this.rageTextTimer = 1.5;
+      }
+    } else if (this.type === 'basic') {
+      if (Math.random() < 0.20) {
+        this.isSpeed = true;
+        this.color = '#00FFFF'; // Cyan
+        this.speed *= 4.0; // 300% faster mathematically native
+        this.speedTextTimer = 1.5;
+      }
+    }
+
     // Behavior properties
     this.behavior = typeConfig.behavior;
     this.bounceOffWalls = false;
@@ -248,6 +269,13 @@ export class Enemy extends Entity {
   }
 
   update(deltaTime, canvasWidth, canvasHeight, player = null, projectiles = null, enemies = null) {
+    if (this.rageTextTimer !== undefined && this.rageTextTimer > 0) {
+      this.rageTextTimer -= deltaTime;
+    }
+    if (this.speedTextTimer !== undefined && this.speedTextTimer > 0) {
+      this.speedTextTimer -= deltaTime;
+    }
+    
     // Update based on behavior type
     switch (this.behavior) {
       case 'tracker':
@@ -302,6 +330,9 @@ export class Enemy extends Entity {
       
       if (distance <= this.aggroRadius) {
         // Switch to following player
+        if (!this.isAggro) {
+          this.rageTextTimer = 1.0;
+        }
         this.isAggro = true;
         this.velocity.x = (dx / distance) * this.speed * 1.5; // Move faster when aggro
         this.velocity.y = (dy / distance) * this.speed * 1.5;
@@ -410,33 +441,35 @@ export class Enemy extends Entity {
   }
 
   updateBoss(deltaTime, canvasWidth, canvasHeight, player, projectiles, enemies) {
-    // Move and bounce like a slow tank
-    this.handleWallBounce(canvasWidth, canvasHeight);
-    
     if (!player || !player.alive) return;
     
-    // Shoot bouncing projectile at player
-    if (projectiles) {
+    // Slowly follow player at 70% of player's speed natively
+    const targetSpeed = player.speed * 0.7;
+    this.speed = targetSpeed;
+    
+    const dx = player.position.x - this.position.x;
+    const dy = player.position.y - this.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 0) {
+      this.velocity.x = (dx / distance) * this.speed;
+      this.velocity.y = (dy / distance) * this.speed;
+    }
+    
+    // Spawn purple tracker every 5 seconds instead of shooting projectiles
+    if (enemies) {
       this.shootTimer -= deltaTime;
       
       if (this.shootTimer <= 0) {
-        this.shootTimer = this.shootCooldown;
+        this.shootTimer = 5.0; // explicit 5s cooldown loop
         
-        const dx = player.position.x - this.position.x;
-        const dy = player.position.y - this.position.y;
-        const angle = Math.atan2(dy, dx);
+        const tracker = new Enemy(this.position.x, this.position.y, 'tracker', this.wave || 1);
+        tracker.color = '#8A2BE2'; // Deep Purple visually mapped
+        tracker.health *= 2.0;
+        tracker.maxHealth *= 2.0;
+        tracker.speed *= 2.0;
         
-        const projectile = new Projectile(this.position.x, this.position.y, angle, 'enemy');
-        projectile.damage = this.projectileDamage;
-        projectile.size = this.projectileSize;
-        projectile.speed = this.projectileSpeed;
-        projectile.maxBounces = this.projectileBounces;
-        projectile.color = '#FF00FF';  // Purple projectiles for boss
-        
-        projectile.velocity.x = Math.cos(angle) * this.projectileSpeed;
-        projectile.velocity.y = Math.sin(angle) * this.projectileSpeed;
-        
-        projectiles.push(projectile);
+        enemies.push(tracker);
       }
     }
     
@@ -564,14 +597,7 @@ export class Enemy extends Entity {
       ctx.closePath();
       ctx.fill();
       
-      // Draw aggro indicator
-      if (this.isAggro) {
-        ctx.strokeStyle = '#FF0000';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, 0, this.size + 5, 0, Math.PI * 2);
-        ctx.stroke();
-      }
+      // Draw indicator logic dropped for red glow handled uniformly below
     } else if (this.behavior === 'zoomer') {
       // Draw a sharp, narrow triangle pointing in direction of movement
       ctx.rotate(Math.atan2(this.velocity.y, this.velocity.x) + Math.PI / 2);
@@ -601,12 +627,41 @@ export class Enemy extends Entity {
     } else {
       // Draw triangle for other types
       ctx.fillStyle = this.color;
-      ctx.beginPath();
+      
+      if (this.isEnraged) {
+      ctx.shadowColor = '#FFAAAA';
+      ctx.shadowBlur = 15;
+    } else if (this.isSpeed) {
+      ctx.shadowColor = '#00FFFF';
+      ctx.shadowBlur = 15;
+    } else if (this.behavior === 'tank' && this.isAggro) {
+      ctx.shadowColor = '#FF0000';
+      ctx.shadowBlur = 20;
+    }
+
+    ctx.beginPath();
       ctx.moveTo(0, -this.size / 2);
       ctx.lineTo(-this.size / 2, this.size / 2);
       ctx.lineTo(this.size / 2, this.size / 2);
       ctx.closePath();
       ctx.fill();
+      
+      if (this.isEnraged || this.isSpeed) {
+        ctx.shadowBlur = 0; // Reset shadow correctly
+      }
+    }
+    
+    // Draw RAGE or SPEED text if active
+    if (this.rageTextTimer !== undefined && this.rageTextTimer > 0) {
+      ctx.fillStyle = `rgba(255, 0, 0, ${Math.min(1, this.rageTextTimer / 0.5)})`; // Fade out in last 0.5s
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('RAGE', 0, -this.size - 10);
+    } else if (this.speedTextTimer !== undefined && this.speedTextTimer > 0) {
+      ctx.fillStyle = `rgba(0, 255, 255, ${Math.min(1, this.speedTextTimer / 0.5)})`;
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('SPEED', 0, -this.size - 10);
     }
     
     ctx.restore();

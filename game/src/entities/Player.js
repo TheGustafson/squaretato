@@ -11,36 +11,69 @@ export class Player extends Entity {
     this.aimAngle = 0; // Direction player is aiming
   }
 
-  update(deltaTime, input, mousePosition, canvasWidth, canvasHeight, gameAreaTop = 0) {
-    // WASD/Arrow movement
+  update(deltaTime, input, mousePosition, canvasWidth, canvasHeight, gameAreaTop = 0, joystickVector = null, enemies = [], aimMode = 'auto') {
+    // Movement handling (Joystick overrides Keyboard)
     this.velocity.x = 0;
     this.velocity.y = 0;
 
-    if (input.pressed('ArrowLeft') || input.pressed('a')) {
-      this.velocity.x = -this.speed;
-    }
-    if (input.pressed('ArrowRight') || input.pressed('d')) {
-      this.velocity.x = this.speed;
-    }
-    if (input.pressed('ArrowUp') || input.pressed('w')) {
-      this.velocity.y = -this.speed;
-    }
-    if (input.pressed('ArrowDown') || input.pressed('s')) {
-      this.velocity.y = this.speed;
+    if (joystickVector && (joystickVector.x !== 0 || joystickVector.y !== 0)) {
+      this.velocity.x = joystickVector.x * this.speed;
+      this.velocity.y = joystickVector.y * this.speed;
+    } else {
+      if (input.pressed('ArrowLeft') || input.pressed('a')) {
+        this.velocity.x = -this.speed;
+      }
+      if (input.pressed('ArrowRight') || input.pressed('d')) {
+        this.velocity.x = this.speed;
+      }
+      if (input.pressed('ArrowUp') || input.pressed('w')) {
+        this.velocity.y = -this.speed;
+      }
+      if (input.pressed('ArrowDown') || input.pressed('s')) {
+        this.velocity.y = this.speed;
+      }
+
+      // Normalize diagonal keyboard movement
+      if (this.velocity.x !== 0 && this.velocity.y !== 0) {
+        const factor = 1 / Math.sqrt(2);
+        this.velocity.x *= factor;
+        this.velocity.y *= factor;
+      }
     }
 
-    // Normalize diagonal movement
-    if (this.velocity.x !== 0 && this.velocity.y !== 0) {
-      const factor = 1 / Math.sqrt(2);
-      this.velocity.x *= factor;
-      this.velocity.y *= factor;
-    }
-
-    // Update aim angle based on mouse position
-    if (mousePosition) {
-      const dx = mousePosition.x - this.position.x;
-      const dy = mousePosition.y - this.position.y;
-      this.aimAngle = Math.atan2(dy, dx);
+    // Aim handling
+    if (aimMode === 'manual') {
+      // Manual aim follows mouse position
+      if (mousePosition) {
+        const dx = mousePosition.x - this.position.x;
+        const dy = mousePosition.y - this.position.y;
+        this.aimAngle = Math.atan2(dy, dx);
+      }
+    } else {
+      // Auto aim targets closest enemy
+      let closestEnemy = null;
+      let minDistanceSq = Infinity;
+      
+      for (const enemy of enemies) {
+        if (!enemy.alive) continue;
+        const dx = enemy.position.x - this.position.x;
+        const dy = enemy.position.y - this.position.y;
+        const distSq = dx * dx + dy * dy;
+        
+        if (distSq < minDistanceSq) {
+          minDistanceSq = distSq;
+          closestEnemy = enemy;
+        }
+      }
+      
+      if (closestEnemy) {
+        const dx = closestEnemy.position.x - this.position.x;
+        const dy = closestEnemy.position.y - this.position.y;
+        this.aimAngle = Math.atan2(dy, dx);
+      } else if (this.velocity.x !== 0 || this.velocity.y !== 0) {
+        // If no enemies, aim in the direction we are moving
+        this.aimAngle = Math.atan2(this.velocity.y, this.velocity.x);
+      }
     }
 
     // Update position
@@ -61,18 +94,6 @@ export class Player extends Entity {
       this.size,
       this.size
     );
-
-    // Draw aim indicator (small line showing where player is aiming)
-    ctx.strokeStyle = COLORS.PLAYER;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(this.position.x, this.position.y);
-    const aimLength = 25;
-    ctx.lineTo(
-      this.position.x + Math.cos(this.aimAngle) * aimLength,
-      this.position.y + Math.sin(this.aimAngle) * aimLength
-    );
-    ctx.stroke();
 
     // Health bar (above player)
     const barWidth = this.size * 1.5;

@@ -1,5 +1,6 @@
 import { Player } from './entities/Player.js';
 import { Pickup } from './entities/Pickup.js';
+import { Enemy } from './entities/Enemy.js';
 import { WeaponSystem, createWeapon } from './systems/WeaponSystem.js';
 import { SpawnSystem } from './systems/SpawnSystem.js';
 import { GameState } from './systems/GameState.js';
@@ -9,6 +10,7 @@ import { SettingsScreen } from './ui/SettingsScreen.js';
 import { ShopScreen } from './ui/ShopScreen.js';
 import { UpgradeScreen } from './ui/UpgradeScreen.js';
 import { GameOverScreen } from './ui/GameOverScreen.js';
+import { RoundStatsScreen } from './ui/RoundStatsScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 import { EffectsSystem } from './systems/EffectsSystem.js';
 import { SoundSystem } from './systems/SoundSystem.js';
@@ -35,6 +37,11 @@ export class Game {
   #totalKills;
   #isPaused;
   #weaponDamageStats;  // Track damage by weapon type
+  #roundStats;
+  #delayedRageTimer;
+  #vacuumWaitTimer;
+  #vacuumActive;
+  #vacuumDuration;
 
   constructor(canvas, ctx, input) {
     this.#canvas = canvas;
@@ -62,6 +69,7 @@ export class Game {
     this.shopScreen = new ShopScreen(canvas, this.#gameState, this.#soundSystem);
     this.upgradeScreen = new UpgradeScreen(canvas, this.#gameState, this.#soundSystem);
     this.gameOverScreen = new GameOverScreen(canvas, this.#gameState);
+    this.roundStatsScreen = new RoundStatsScreen(canvas, this.#gameState);
     this.pauseMenu = new PauseMenu(canvas);
     this.activeScreen = 'menu';
     
@@ -74,8 +82,9 @@ export class Game {
     this.characterScreen.onBackClick = () => this.showMenu();
     this.settingsScreen.onBackClick = () => this.showMenu();
     this.shopScreen.onBackClick = () => this.showMenu();
-    this.shopScreen.onContinueClick = () => this.showMenu();  // For post-wave shop
-    this.upgradeScreen.onUpgradeSelected = () => this.showShopAfterWave();
+    this.shopScreen.onContinueClick = () => this.showCharacterScreen(true);  // For post-wave shop
+    this.upgradeScreen.onUpgradeSelected = () => this.showShopAfterWave(); // Force open Shop next
+    this.roundStatsScreen.onContinueClick = () => this.showUpgradeScreen();
     this.gameOverScreen.onContinueClick = () => this.showMenu();
     this.pauseMenu.onResumeClick = () => this.resumeGame();
     this.pauseMenu.onMainMenuClick = () => this.pauseToMenu();
@@ -133,6 +142,10 @@ export class Game {
     this.characterScreen.deactivate();
     this.settingsScreen.deactivate();
     this.shopScreen.deactivate();
+    this.upgradeScreen.deactivate();
+    if(this.roundStatsScreen) this.roundStatsScreen.deactivate();
+    this.pauseMenu.deactivate();
+    this.gameOverScreen.deactivate();
     this.#canvas.style.cursor = 'pointer';
   }
   
@@ -248,11 +261,34 @@ export class Game {
     this.#projectiles = [];
     this.#pickups = [];
 
+    this.#delayedRageTimer = 3.0;
+    
+    // Spawn baseline corner trackers immediately natively
+    const w = this.#canvas.width;
+    const h = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT;
+    this.#enemies.push(new Enemy(20, h - 20, 'tracker', level));
+    this.#enemies.push(new Enemy(w - 20, h - 20, 'tracker', level));
+
     // Reset round stats
+    this.#roundStats = {
+      damageTaken: 0,
+      enemiesKilled: 0,
+      totalDamageDealt: 0,
+      moneyCollected: 0,
+      moneySpawned: 0,
+      killsByWeapon: new Map(),
+      killsByType: new Map(),
+      damageByWeapon: new Map()
+    };
+    
     this.#roundTimer = BALANCE.spawning.waveDuration;
     this.#moneyEarned = 0;
     this.#totalKills = 0;
     this.#lastCountdownSecond = Math.ceil(this.#roundTimer);
+    
+    this.#vacuumWaitTimer = 0;
+    this.#vacuumActive = false;
+    this.#vacuumDuration = 0;
 
     // Set game state
     this.#gameState.currentLevel = level;
@@ -260,7 +296,60 @@ export class Game {
   }
 
   update(deltaTime) {
-    if (this.#gameState.getState() !== GAME_STATES.PLAYING || this.#isPaused) {
+    if (this.#isPaused) return;
+
+    if (this.#gameState.getState() === GAME_STATES.ROUND_COMPLETE) {
+      this.#effectsSystem.update(deltaTime);
+      
+      if (this.#vacuumWaitTimer > 0) {
+        this.#vacuumWaitTimer -= deltaTime;
+        if (this.#vacuumWaitTimer <= 0) {
+          this.#vacuumActive = true;
+          this.#vacuumDuration = 1.5; // 1.5 seconds maximum pull animation
+        }
+      } else if (this.#vacuumActive) {
+        this.#vacuumDuration -= deltaTime;
+        for (let i = this.#pickups.length - 1; i >= 0; i--) {
+          const pickup = this.#pickups[i];
+          const dx = this.#player.position.x - pickup.position.x;
+          const dy = this.#player.position.y - pickup.position.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          
+          if (dist < 30) {
+             if (pickup.type === 'money') {
+                this.#moneyEarned += pickup.value;
+                if (this.#roundStats) this.#roundStats.moneyCollected += pickup.value;
+                this.#effectsSystem.addMoneyPickupEffect(pickup.position.x, pickup.position.y, pickup.value);
+                this.#soundSystem.play('pickup'); 
+             } else if (pickup.type === 'health' && this.#player.health < this.#player.maxHealth) {
+                this.#player.health = Math.min(this.#player.maxHealth, this.#player.health + pickup.value);
+             }
+             this.#pickups.splice(i, 1);
+          } else {
+             // Increase speed geometrically!
+             pickup.position.x += (dx / Math.max(1, dist)) * 800 * deltaTime;
+             pickup.position.y += (dy / Math.max(1, dist)) * 800 * deltaTime;
+          }
+        }
+        
+        if (this.#pickups.length === 0 || this.#vacuumDuration <= 0) {
+          this.#vacuumActive = false;
+          // Sweep any surviving explicitly
+          for (const pickup of this.#pickups) {
+            if (pickup.type === 'money' && pickup.alive) {
+              this.#moneyEarned += pickup.value;
+              if (this.#roundStats) this.#roundStats.moneyCollected += pickup.value;
+            }
+          }
+          this.#pickups = [];
+          this.#gameState.completeLevel(this.#gameState.currentLevel, this.#moneyEarned);
+          this.showRoundStatsScreen();
+        }
+      }
+      return;
+    }
+
+    if (this.#gameState.getState() !== GAME_STATES.PLAYING) {
       return;
     }
 
@@ -323,8 +412,40 @@ export class Game {
     // Update spawn system (use game area height) - pass player and projectiles for new enemy types
     this.#spawnSystem.update(deltaTime, this.#enemies, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles);
 
+    if (this.#delayedRageTimer > 0) {
+      this.#delayedRageTimer -= deltaTime;
+      if (this.#delayedRageTimer <= 0) {
+        const w = this.#canvas.width;
+        const h = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT;
+        const pts = [
+          {x: 20, y: GAME_CONFIG.UI_BAR_HEIGHT + 20},
+          {x: w - 20, y: GAME_CONFIG.UI_BAR_HEIGHT + 20},
+          {x: 20, y: h - 20},
+          {x: w - 20, y: h - 20}
+        ];
+        pts.forEach(p => {
+          const rage = new Enemy(p.x, p.y, 'tracker', this.#gameState.currentLevel);
+          rage.isEnraged = true;
+          rage.color = '#FFAAAA';
+          rage.health = 0.1;
+          rage.maxHealth = 0.1;
+          rage.speed *= 3.0;
+          rage.rageTextTimer = 1.5;
+          this.#enemies.push(rage);
+        });
+      }
+    }
+
     // Update weapon system (weapons handle their own sounds/effects now)
-    this.#weaponSystem.update(deltaTime, this.#player, this.#enemies, this.#projectiles, this.#weaponDamageStats);
+    this.#weaponSystem.update(
+      deltaTime, 
+      this.#player, 
+      this.#enemies, 
+      this.#projectiles, 
+      this.#weaponDamageStats,
+      this.#gameState.playerData.aimMode,
+      this.#mousePosition
+    );
 
     // Update enemies - pass player, projectiles, and enemies array for AI behaviors
     for (let i = this.#enemies.length - 1; i >= 0; i--) {
@@ -356,6 +477,7 @@ export class Game {
           });
         } else {
           this.#player.takeDamage(enemy.damage);
+          if(this.#roundStats) this.#roundStats.damageTaken += enemy.damage;
           this.#effectsSystem.addDamageFlash();
           this.#soundSystem.play('playerHurt');
         }
@@ -372,6 +494,20 @@ export class Game {
         this.#effectsSystem.addKillEffect(enemy.position.x, enemy.position.y);
         this.#soundSystem.play('enemyDeath');
         this.#totalKills++;  // Track kills
+        
+        if (this.#roundStats) {
+          this.#roundStats.enemiesKilled++;
+          let enemyKey = enemy.type;
+          if (enemy.isEnraged) enemyKey = `RAGE ${enemy.type}`;
+          else if (enemy.isSpeed) enemyKey = `SPEED ${enemy.type}`;
+          
+          const tCount = this.#roundStats.killsByType.get(enemyKey) || 0;
+          this.#roundStats.killsByType.set(enemyKey, tCount + 1);
+          if (enemy.lastHitWeaponId) {
+            const wCount = this.#roundStats.killsByWeapon.get(enemy.lastHitWeaponId) || 0;
+            this.#roundStats.killsByWeapon.set(enemy.lastHitWeaponId, wCount + 1);
+          }
+        }
         
         // Vampiric healing
         if (this.#player.hasVampiric) {
@@ -401,9 +537,10 @@ export class Game {
         if (Math.random() < dropChance) {
           const pickup = new Pickup(enemy.position.x, enemy.position.y, 'money');
           // Apply luck bonus to value when creating the pickup so displayed value matches collected value
-          const baseValue = enemy.moneyValue * (1 + (enemy.wave - 1) * 0.1); // Scale with wave
-          pickup.value = Math.floor(baseValue * (1 + this.#gameState.playerData.stats.luck * 0.02));
+          const baseValue = (enemy.moneyValue * 0.5) * (1 + (enemy.wave - 1) * 0.1); // Scale with wave
+          pickup.value = Math.ceil(baseValue * (1 + this.#gameState.playerData.stats.luck * 0.02));
           this.#pickups.push(pickup);
+          if (this.#roundStats) this.#roundStats.moneySpawned += pickup.value;
         }
         
         // Blood pact health drops
@@ -442,15 +579,25 @@ export class Game {
             } else {
               this.#soundSystem.play('hit');
             }
-            
+            const effectiveDamage = Math.min(enemy.health, damage);
             enemy.takeDamage(damage);
-            this.#effectsSystem.addDamageNumber(enemy.position.x, enemy.position.y - 10, damage);
+            if (projectile.weaponId) enemy.lastHitWeaponId = projectile.weaponId;
+            
+            if (effectiveDamage > 0 && this.#roundStats) {
+              this.#roundStats.totalDamageDealt += effectiveDamage;
+              if (projectile.weaponId) {
+                const wd = this.#roundStats.damageByWeapon.get(projectile.weaponId) || 0;
+                this.#roundStats.damageByWeapon.set(projectile.weaponId, wd + effectiveDamage);
+              }
+            }
+
+            this.#effectsSystem.addDamageNumber(enemy.position.x, enemy.position.y - 10, effectiveDamage);
             this.#effectsSystem.addImpactEffect(enemy.position.x, enemy.position.y);
             
-            // Track weapon damage stats
+            // Track legacy weapon damage stats exactly identically for UI pipeline
             if (projectile.weaponId) {
               const currentDamage = this.#weaponDamageStats.get(projectile.weaponId) || 0;
-              this.#weaponDamageStats.set(projectile.weaponId, currentDamage + damage);
+              this.#weaponDamageStats.set(projectile.weaponId, currentDamage + effectiveDamage);
             }
             
             // Life steal healing
@@ -474,13 +621,27 @@ export class Game {
                   const distance = Math.sqrt(dx * dx + dy * dy);
                   
                   if (distance <= projectile.explosionRadius) {
+                    const effDamage = Math.min(otherEnemy.health, projectile.explosionDamage);
                     otherEnemy.takeDamage(projectile.explosionDamage);
-                    this.#effectsSystem.addDamageNumber(otherEnemy.position.x, otherEnemy.position.y - 10, projectile.explosionDamage);
                     
-                    // Track explosive damage
+                    if (projectile.weaponId) otherEnemy.lastHitWeaponId = projectile.weaponId;
+                    
+                    if (effDamage > 0 && this.#roundStats) {
+                      this.#roundStats.totalDamageDealt += effDamage;
+                      if (projectile.weaponId) {
+                        const wd = this.#roundStats.damageByWeapon.get(projectile.weaponId) || 0;
+                        this.#roundStats.damageByWeapon.set(projectile.weaponId, wd + effDamage);
+                      }
+                    }
+
+                    // Add explosion impact effect
+                    this.#effectsSystem.addImpactEffect(otherEnemy.position.x, otherEnemy.position.y);
+                    this.#effectsSystem.addDamageNumber(otherEnemy.position.x, otherEnemy.position.y - 10, effDamage);
+                    
+                    // Track legacy explosive damage
                     if (projectile.weaponId) {
                       const currentDamage = this.#weaponDamageStats.get(projectile.weaponId) || 0;
-                      this.#weaponDamageStats.set(projectile.weaponId, currentDamage + projectile.explosionDamage);
+                      this.#weaponDamageStats.set(projectile.weaponId, currentDamage + effDamage);
                     }
                   }
                 }
@@ -513,6 +674,7 @@ export class Game {
             });
           } else {
             this.#player.takeDamage(projectile.damage);
+            if(this.#roundStats) this.#roundStats.damageTaken += projectile.damage;
             this.#effectsSystem.addDamageFlash();
             this.#soundSystem.play('playerHurt');
             
@@ -554,6 +716,7 @@ export class Game {
         if (pickup.type === 'money') {
           // Luck bonus already applied when creating the pickup
           this.#moneyEarned += pickup.value;
+          if (this.#roundStats) this.#roundStats.moneyCollected += pickup.value;
           this.#effectsSystem.addMoneyPickupEffect(pickup.position.x, pickup.position.y, pickup.value);
           this.#soundSystem.play('pickup');
         } else if (pickup.type === 'health') {
@@ -579,17 +742,32 @@ export class Game {
   }
 
   completeRound() {
-    this.#gameState.completeLevel(this.#gameState.currentLevel, this.#moneyEarned);
     this.#gameState.setState(GAME_STATES.ROUND_COMPLETE);
     this.#soundSystem.play('waveComplete');
-    
-    // Show upgrade screen after 2 seconds
-    setTimeout(() => this.showUpgradeScreen(), 2000);
+    this.#vacuumWaitTimer = 1.0; // 1 solid second pause visually
+    this.#vacuumActive = false;
   }
   
+  showRoundStatsScreen() {
+    this.#gameState.setState(GAME_STATES.MENU);
+    this.activeScreen = 'roundStats';
+    
+    // Clear any remaining screen shake explicitly
+    this.#effectsSystem.screenShake.duration = 0;
+    this.#effectsSystem.screenShake.intensity = 0;
+    this.#effectsSystem.screenShake.offset = { x: 0, y: 0 };
+    
+    // Update stats internally
+    this.roundStatsScreen.updateStats(this.#roundStats);
+    this.roundStatsScreen.activate();
+    this.#canvas.style.cursor = 'pointer';
+  }
+
   showUpgradeScreen() {
     this.#gameState.setState(GAME_STATES.MENU);
     this.activeScreen = 'upgrade';
+    this.shopScreen.deactivate();
+    if(this.roundStatsScreen) this.roundStatsScreen.deactivate();
     // Clear any remaining screen shake when showing upgrade screen
     this.#effectsSystem.screenShake.duration = 0;
     this.#effectsSystem.screenShake.intensity = 0;
@@ -635,6 +813,9 @@ export class Game {
           this.renderGameState();
           this.upgradeScreen.render(this.#ctx);
           break;
+        case 'roundStats':
+          this.roundStatsScreen.render(this.#ctx);
+          break;
         case 'gameOver':
           this.gameOverScreen.render(this.#ctx);
           break;
@@ -677,9 +858,10 @@ export class Game {
 
     if (state === GAME_STATES.PLAYING) {
       this.renderGame();
-    } else if (this.#gameState.getState() === GAME_STATES.ROUND_COMPLETE) {
+    } else if (state === GAME_STATES.ROUND_COMPLETE) {
+      this.renderGame();
       this.renderRoundComplete();
-    } else if (this.#gameState.getState() === GAME_STATES.GAME_OVER) {
+    } else if (state === GAME_STATES.GAME_OVER) {
       this.renderGameOver();
     }
     
@@ -888,8 +1070,9 @@ export class Game {
     // Render player
     if (this.#player) {
       this.#player.render(this.#ctx);
+      this.#weaponSystem.render(this.#ctx, this.#player);
     }
-
+    
     // Render effects
     this.#effectsSystem.renderParticles(this.#ctx);
     this.#effectsSystem.renderFloatingTexts(this.#ctx);

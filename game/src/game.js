@@ -1046,7 +1046,7 @@ export class Game {
     this.#ctx.fillStyle = timeRemaining <= 10 ? '#FF0000' : COLORS.UI_TEXT;
     this.#ctx.fillText(`${timeRemaining}`, this.#canvas.logicalWidth / 2, barY + 40);
     this.#ctx.font = 'bold 16px monospace';
-    this.#ctx.fillText('seconds', this.#canvas.logicalWidth / 2, barY + 55);
+
     
     // Right section - Stats
     this.#ctx.textAlign = 'right';

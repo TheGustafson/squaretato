@@ -128,12 +128,12 @@ export class RoundStatsScreen {
     ctx.fillText(`Missed Funds : $${notCollected}`, leftX, y);
 
     // Middle Column: Weapon Stats
-    const midX = this.canvas.logicalWidth / 2 - 60;
-    y = layout.contentY;
+    y += 40;
+    const listX = leftX + 45;
     
     ctx.font = 'bold 26px monospace';
     ctx.fillStyle = '#FFD700';
-    ctx.fillText('BY WEAPON', midX, y);
+    ctx.fillText('BY WEAPON', leftX, y);
     ctx.font = 'bold 18px monospace';
     ctx.fillStyle = COLORS.UI_TEXT;
     
@@ -145,7 +145,7 @@ export class RoundStatsScreen {
       
       // Render Weapon Sprite
       ctx.save();
-      ctx.translate(midX - 25, y - 5);
+      ctx.translate(listX - 25, y - 5);
       ctx.scale(1.5, 1.5);
       const tempWeapon = createWeapon(weaponId, 1);
       if (tempWeapon.render) {
@@ -155,20 +155,19 @@ export class RoundStatsScreen {
       }
       ctx.restore();
 
-      ctx.fillText(`[${name}]`, midX, y);
+      ctx.fillText(`[${name}]`, listX, y);
       ctx.fillStyle = '#00FF00';
-      ctx.fillText(`${damage.toFixed(1)} DMG | ${kills} KILLS`, midX, y + 15);
+      ctx.fillText(`${damage.toFixed(1)} DMG | ${kills} KILLS`, listX, y + 15);
       ctx.fillStyle = COLORS.UI_TEXT;
       y += 35;
     }
 
     // Right Column: Kills by Enemy
-    const rightX = this.canvas.logicalWidth - 250;
-    y = layout.contentY;
+    y += 40;
 
     ctx.font = 'bold 26px monospace';
     ctx.fillStyle = '#FF6666';
-    ctx.fillText('TARGETS', rightX, y);
+    ctx.fillText('TARGETS', leftX, y);
     ctx.font = 'bold 18px monospace';
     ctx.fillStyle = COLORS.UI_TEXT;
 
@@ -178,7 +177,7 @@ export class RoundStatsScreen {
       
       // Render Enemy Sprite natively right beside it seamlessly
       ctx.save();
-      ctx.translate(rightX - 35, y - 5);
+      ctx.translate(listX - 35, y - 5);
       
       let baseType = enemyType.toLowerCase();
       let isEnraged = false;
@@ -214,7 +213,7 @@ export class RoundStatsScreen {
       }
       ctx.restore();
 
-      ctx.fillText(`${name}: ${amount} eliminated`, rightX, y);
+      ctx.fillText(`${name}: ${amount} eliminated`, listX, y);
       y += 28;
     }
   }

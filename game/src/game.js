@@ -128,7 +128,7 @@ export class Game {
     
     // Explicit Mobile Touch Support
     this.#canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
+      if (this.#gameState.getState() === GAME_STATES.PLAYING) e.preventDefault();
       const rect = this.#canvas.getBoundingClientRect();
       const scaleX = this.#canvas.logicalWidth / rect.width;
       const scaleY = this.#canvas.logicalHeight / rect.height;
@@ -147,7 +147,7 @@ export class Game {
     }, { passive: false });
     
     this.#canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
+      if (this.#gameState.getState() === GAME_STATES.PLAYING) e.preventDefault();
       const rect = this.#canvas.getBoundingClientRect();
       const scaleX = this.#canvas.logicalWidth / rect.width;
       const scaleY = this.#canvas.logicalHeight / rect.height;
@@ -166,7 +166,7 @@ export class Game {
     }, { passive: false });
     
     this.#canvas.addEventListener('touchend', (e) => {
-      e.preventDefault();
+      if (this.#gameState.getState() === GAME_STATES.PLAYING) e.preventDefault();
       for(let i=0; i<e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (t.identifier === this.#joystick.touchId) {

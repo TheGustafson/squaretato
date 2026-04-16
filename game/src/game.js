@@ -298,7 +298,7 @@ export class Game {
     this.#weaponDamageStats.clear();
     
     // Initialize player with upgraded stats (in game area, not full canvas)
-    this.#player = new Player(this.#canvas.logicalWidth / 2, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2);
+    this.#player = new Player(this.#canvas.logicalWidth / 2, (this.#canvas.logicalHeight + GAME_CONFIG.UI_BAR_HEIGHT) / 2);
     this.#player.health = this.#gameState.playerData.stats.health;
     this.#player.maxHealth = this.#gameState.playerData.stats.health;
     this.#player.speed = this.#gameState.playerData.stats.speed;
@@ -344,7 +344,7 @@ export class Game {
     
     // Spawn baseline corner trackers immediately natively
     const w = this.#canvas.logicalWidth;
-    const h = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT;
+    const h = this.#canvas.logicalHeight;
     this.#enemies.push(new Enemy(20, h - 20, 'tracker', level));
     this.#enemies.push(new Enemy(w - 20, h - 20, 'tracker', level));
 
@@ -484,7 +484,7 @@ export class Game {
       this.#input,
       this.#mousePosition,
       this.#canvas.logicalWidth,
-      GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT,
+      this.#canvas.logicalHeight,
       GAME_CONFIG.UI_BAR_HEIGHT,
       this.#joystick.active ? this.#joystick.vector : null,
       this.#enemies,
@@ -492,13 +492,13 @@ export class Game {
     );
 
     // Update spawn system (use game area height) - pass player and projectiles for new enemy types
-    this.#spawnSystem.update(deltaTime, this.#enemies, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles);
+    this.#spawnSystem.update(deltaTime, this.#enemies, this.#canvas.logicalWidth, this.#canvas.logicalHeight, this.#player, this.#projectiles);
 
     if (this.#delayedRageTimer > 0) {
       this.#delayedRageTimer -= deltaTime;
       if (this.#delayedRageTimer <= 0) {
         const w = this.#canvas.logicalWidth;
-        const h = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT;
+        const h = this.#canvas.logicalHeight;
         const pts = [
           {x: 20, y: GAME_CONFIG.UI_BAR_HEIGHT + 20},
           {x: w - 20, y: GAME_CONFIG.UI_BAR_HEIGHT + 20},
@@ -532,7 +532,7 @@ export class Game {
     // Update enemies - pass player, projectiles, and enemies array for AI behaviors
     for (let i = this.#enemies.length - 1; i >= 0; i--) {
       const enemy = this.#enemies[i];
-      enemy.update(deltaTime, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles, this.#enemies);
+      enemy.update(deltaTime, this.#canvas.logicalWidth, this.#canvas.logicalHeight, this.#player, this.#projectiles, this.#enemies);
 
       // Check collision with player
       if (enemy.checkCollision(this.#player)) {
@@ -639,7 +639,7 @@ export class Game {
     // Update projectiles
     for (let i = this.#projectiles.length - 1; i >= 0; i--) {
       const projectile = this.#projectiles[i];
-      projectile.update(deltaTime, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#enemies);
+      projectile.update(deltaTime, this.#canvas.logicalWidth, this.#canvas.logicalHeight, this.#enemies);
 
       // Check collision based on projectile owner
       if (projectile.owner === 'player') {
@@ -1093,7 +1093,7 @@ export class Game {
     this.#ctx.fillStyle = COLORS.UI_TEXT;
     this.#ctx.font = 'bold 42px monospace';
     this.#ctx.textAlign = 'center';
-    const centerY = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2;
+    const centerY = (this.#canvas.logicalHeight + GAME_CONFIG.UI_BAR_HEIGHT) / 2;
     this.#ctx.fillText('ROUND COMPLETE!', this.#canvas.logicalWidth / 2, centerY - 40);
 
     this.#ctx.font = 'bold 26px monospace';
@@ -1108,7 +1108,7 @@ export class Game {
     this.#ctx.fillStyle = '#FF0000';
     this.#ctx.font = 'bold 62px monospace';
     this.#ctx.textAlign = 'center';
-    const centerY = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2;
+    const centerY = (this.#canvas.logicalHeight + GAME_CONFIG.UI_BAR_HEIGHT) / 2;
     this.#ctx.fillText('GAME OVER', this.#canvas.logicalWidth / 2, centerY);
 
     this.#ctx.fillStyle = COLORS.UI_TEXT;

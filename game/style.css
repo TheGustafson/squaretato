@@ -20,12 +20,10 @@ canvas {
   background: #000000;
   image-rendering: pixelated;
   box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: contain;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 1;
   touch-action: none;
   box-sizing: border-box;
 }

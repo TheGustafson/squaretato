@@ -1,8 +1,8 @@
 export function setupHiDPICanvas(canvas) {
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-  // Guarantee recursive-safe parsing matching explicitly off the DOM node or existing logical mapping safely
-  const w = canvas.logicalWidth || parseInt(canvas.getAttribute('width'), 10) || 800;
-  const h = canvas.logicalHeight || parseInt(canvas.getAttribute('height'), 10) || 800;
+  const w = 800; // Hardcoded base logical width
+  const aspect = window.innerHeight / window.innerWidth;
+  const h = Math.round(w * aspect); // Fluid height calculated seamlessly
   
   // Physically stretch the native drawing buffer natively exclusively
   canvas.width = w * dpr;

@@ -291,6 +291,9 @@ export class Game {
     this.settingsScreen.deactivate();
     this.#canvas.style.cursor = 'crosshair';
     
+    // Reset joystick bounds completely dropping trapped physics states dynamically
+    if (this.#joystick) this.#joystick.reset();
+    
     // Reset weapon damage stats for this round
     this.#weaponDamageStats.clear();
     

@@ -29,10 +29,14 @@ export class VirtualJoystick {
 
   handleTouchEnd(touch) {
     if (!this.active || touch.identifier !== this.touchId) return;
-    
+    this.reset();
+  }
+
+  reset() {
     this.active = false;
     this.touchId = null;
     this.vector = { x: 0, y: 0 };
+    this.current = { x: this.origin.x, y: this.origin.y };
   }
 
   updateVector() {

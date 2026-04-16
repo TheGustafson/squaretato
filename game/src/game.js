@@ -14,6 +14,7 @@ import { RoundStatsScreen } from './ui/RoundStatsScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 import { EffectsSystem } from './systems/EffectsSystem.js';
 import { SoundSystem } from './systems/SoundSystem.js';
+import { VirtualJoystick } from './ui/VirtualJoystick.js';
 import { GAME_CONFIG, GAME_STATES, COLORS } from './constants.js';
 import { BALANCE } from './config/balance.js';
 
@@ -42,6 +43,7 @@ export class Game {
   #vacuumWaitTimer;
   #vacuumActive;
   #vacuumDuration;
+  #joystick;
 
   constructor(canvas, ctx, input) {
     this.#canvas = canvas;
@@ -72,6 +74,7 @@ export class Game {
     this.roundStatsScreen = new RoundStatsScreen(canvas, this.#gameState);
     this.pauseMenu = new PauseMenu(canvas);
     this.activeScreen = 'menu';
+    this.#joystick = new VirtualJoystick(canvas);
     
     // Setup menu callbacks
     this.menu.onLevelSelect = (level) => this.startLevel(level);
@@ -122,6 +125,57 @@ export class Game {
     this.#canvas.addEventListener('mouseleave', () => {
       this.#mousePosition = null;
     });
+    
+    // Explicit Mobile Touch Support
+    this.#canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const rect = this.#canvas.getBoundingClientRect();
+      const scaleX = this.#canvas.logicalWidth / rect.width;
+      const scaleY = this.#canvas.logicalHeight / rect.height;
+      
+      for(let i=0; i<e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const sx = (t.clientX - rect.left) * scaleX;
+        const sy = (t.clientY - rect.top) * scaleY;
+        
+        if (sx < this.#canvas.logicalWidth / 2) {
+          this.#joystick.handleTouchStart(t, sx, sy);
+        } else {
+          this.#mousePosition = { x: sx, y: sy };
+        }
+      }
+    }, { passive: false });
+    
+    this.#canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const rect = this.#canvas.getBoundingClientRect();
+      const scaleX = this.#canvas.logicalWidth / rect.width;
+      const scaleY = this.#canvas.logicalHeight / rect.height;
+      
+      for(let i=0; i<e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const sx = (t.clientX - rect.left) * scaleX;
+        const sy = (t.clientY - rect.top) * scaleY;
+        
+        if (t.identifier === this.#joystick.touchId) {
+          this.#joystick.handleTouchMove(t, sx, sy);
+        } else {
+          this.#mousePosition = { x: sx, y: sy };
+        }
+      }
+    }, { passive: false });
+    
+    this.#canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      for(let i=0; i<e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === this.#joystick.touchId) {
+          this.#joystick.handleTouchEnd(t);
+        } else {
+          this.#mousePosition = null; // Removed finger from right side
+        }
+      }
+    }, { passive: false });
     
     // Add keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -407,7 +461,10 @@ export class Game {
       this.#mousePosition,
       this.#canvas.logicalWidth,
       GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT,
-      GAME_CONFIG.UI_BAR_HEIGHT
+      GAME_CONFIG.UI_BAR_HEIGHT,
+      this.#joystick.active ? this.#joystick.vector : null,
+      this.#enemies,
+      this.#gameState.playerData.settings?.aimMode || 'auto'
     );
 
     // Update spawn system (use game area height) - pass player and projectiles for new enemy types
@@ -859,8 +916,10 @@ export class Game {
 
     if (state === GAME_STATES.PLAYING) {
       this.renderGame();
+      if (this.#joystick && this.#joystick.active) this.#joystick.render(this.#ctx);
     } else if (state === GAME_STATES.ROUND_COMPLETE) {
       this.renderGame();
+      if (this.#joystick && this.#joystick.active) this.#joystick.render(this.#ctx);
       this.renderRoundComplete();
     } else if (state === GAME_STATES.GAME_OVER) {
       this.renderGameOver();

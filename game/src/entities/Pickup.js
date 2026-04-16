@@ -5,7 +5,7 @@ export class Pickup extends Entity {
   constructor(x, y, type = 'money') {
     super(x, y);
     this.type = type;
-    this.size = 16;
+    this.size = 19; // Upscaled by 20% dynamically
     this.value = type === 'money' ? GAME_CONFIG.MONEY_VALUE : 0;
     this.lifetime = 10; // seconds
   }

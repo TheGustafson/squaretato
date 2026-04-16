@@ -136,8 +136,9 @@ export class Game {
   showMenu() {
     this.#gameState.setState(GAME_STATES.MENU);
     this.activeScreen = 'menu';
-    // Reset any canvas transforms when returning to menu
-    this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // Reset any canvas transforms when returning to menu but PRESERVE the High DPI scale!
+    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    this.#ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.menu.activate();
     this.characterScreen.deactivate();
     this.settingsScreen.deactivate();

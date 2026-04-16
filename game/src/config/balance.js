@@ -15,7 +15,7 @@ export const BALANCE = {
     baseCritDamage: 150,
     baseRegeneration: 0.01,  // 1 store upgrade worth (0.1 HP per second)
     basePickupRange: 50,
-    size: 29
+    size: 35
   },
 
   // Enemy Configuration - defaults for backward compatibility
@@ -28,7 +28,7 @@ export const BALANCE = {
     damagePerWave: 0.5,
     baseXpValue: 10,
     xpPerWave: 2,
-    size: 22
+    size: 26
   },
 
   // Enemy Type Definitions
@@ -36,7 +36,7 @@ export const BALANCE = {
     basic: {
       name: 'Basic',
       color: '#0000FF',  // Regular Blue
-      size: 22,
+      size: 26,
       baseHealth: 0.96,  // Increased by 20%
       healthPerWave: 0.05,  // Scales more
       baseSpeed: 70,  // Slower start (was 80)
@@ -52,7 +52,7 @@ export const BALANCE = {
     tracker: {
       name: 'Tracker',
       color: '#FFA500',  // Orange
-      size: 18,  // Smaller
+      size: 22,  // Smaller
       baseHealth: 0.84,  // Increased by 20%
       healthPerWave: 0.3,  // Faster scaling
       baseSpeed: 45,  // Slower start (was 50)
@@ -68,7 +68,7 @@ export const BALANCE = {
     tank: {
       name: 'Tank',
       color: '#8B0000',  // Dark red
-      size: 43,  // Even bigger
+      size: 52,  // Even bigger
       baseHealth: 20,  // 5x basic enemy (doubled)
       healthPerWave: 10,  // Final boost
       baseSpeed: 35,  // Slightly slower
@@ -85,7 +85,7 @@ export const BALANCE = {
     shooter: {
       name: 'Shooter',
       color: '#FFFF00',  // Yellow
-      size: 20,  // Slightly bigger than tracker, smaller than basic
+      size: 24,  // Slightly bigger than tracker, smaller than basic
       baseHealth: 0.7,  // Less than basic
       healthPerWave: 0.5,  // Final boost
       baseSpeed: 90,  // Faster than basic (basic is 80)
@@ -106,7 +106,7 @@ export const BALANCE = {
     wave: {
       name: 'Wave',
       color: '#FF8800',  // Orange-yellow gradient (will be special rendered)
-      size: 11,  // Smaller
+      size: 13,  // Smaller
       baseHealth: 0.3,  // Very fragile
       healthPerWave: 0.25,  // Final boost
       baseSpeed: 120,  // Fast
@@ -130,7 +130,7 @@ export const BALANCE = {
     boss: {
       name: 'Boss',
       color: '#AA00FF',  // Purple
-      size: 72,  // Even larger
+      size: 86,  // Even larger
       baseHealth: 100,  // 100x basic enemy - VERY tanky
       healthPerWave: 80,  // Final boost
       baseSpeed: 25,  // Very slow
@@ -152,7 +152,7 @@ export const BALANCE = {
     zoomer: {
       name: 'Zoomer',
       color: '#FFFF99',  // Light yellow
-      size: 11,  // Small and narrow
+      size: 13,  // Small and narrow
       baseHealth: 0.8,  // Fragile
       healthPerWave: 0.4,  // Final boost
       baseSpeed: 300,  // VERY fast
@@ -236,7 +236,7 @@ export const BALANCE = {
   // Projectile Configuration
   projectile: {
     baseSpeed: 400,
-    baseSize: 6,
+    baseSize: 7,
     maxBounces: 0,  // Without Bounce House item
     bounceHouseMaxBounces: 5
   },

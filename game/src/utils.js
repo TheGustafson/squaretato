@@ -13,10 +13,10 @@ export function setupHiDPICanvas(canvas) {
     canvas.style.width = `${innerW}px`;
     canvas.style.height = `${innerH}px`;
   } else {
-    // Landscape (Desktop) - lock to a comfortable mobile aspect ratio (16:9)
-    aspect = 16 / 9; // 1.777...
+    // Landscape (Desktop) - Revert to beautiful 1:1 Square maximizing vertical screen bounds
+    aspect = 1; // 1:1 perfect square
     const canvasHeight = innerH;
-    const canvasWidth = canvasHeight / aspect;
+    const canvasWidth = canvasHeight; // fill the square fully
     canvas.style.width = `${canvasWidth}px`;
     canvas.style.height = `${canvasHeight}px`;
   }

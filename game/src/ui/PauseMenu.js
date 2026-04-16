@@ -77,11 +77,11 @@ export class PauseMenu {
     
     // Paused text
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = 'bold 36px monospace';
+    ctx.font = 'bold 47px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('PAUSED', this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.3);
     
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillStyle = COLORS.UI_INACTIVE;
     ctx.fillText('(Press ESC to resume)', this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.33);
     
@@ -94,7 +94,7 @@ export class PauseMenu {
     ctx.strokeRect(centerX - 100, resumeY, 200, 40);
     
     ctx.fillStyle = this.resumeHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.font = '18px monospace';
+    ctx.font = 'bold 23px monospace';
     ctx.fillText('RESUME', centerX, resumeY + 25);
     
     // Main Menu button
@@ -106,7 +106,7 @@ export class PauseMenu {
     ctx.fillText('MAIN MENU', centerX, mainMenuY + 25);
     
     // Warning
-    ctx.font = '12px monospace';
+    ctx.font = 'bold 16px monospace';
     ctx.fillStyle = '#FF6600';
     ctx.fillText('(Progress will be saved)', centerX, mainMenuY + 60);
   }

@@ -976,12 +976,12 @@ export class Game {
     
     // Left section - Health bar
     this.#ctx.fillStyle = COLORS.UI_TEXT;
-    this.#ctx.font = 'bold 16px monospace';
+    this.ctx.font = 'bold 21px monospace';
     this.#ctx.textAlign = 'left';
     
     // Health bar
     const hpBarY = barY;
-    this.#ctx.font = '14px monospace';
+    this.ctx.font = 'bold 18px monospace';
     this.#ctx.fillText('HP', 20, hpBarY + 7);
     
     const hpBarX = 45;
@@ -997,17 +997,17 @@ export class Game {
     this.#ctx.fillRect(hpBarX, hpBarY, hpBarWidth * hpPercent, hpBarHeight);
     
     // HP text
-    this.#ctx.font = '10px monospace';
+    this.ctx.font = 'bold 13px monospace';
     this.#ctx.fillStyle = '#FFFFFF';
     this.#ctx.textAlign = 'center';
     this.#ctx.fillText(`${Math.ceil(this.#player.health)}/${this.#player.maxHealth}`, hpBarX + hpBarWidth/2, hpBarY + 9);
     
     // Money section
-    this.#ctx.font = '14px monospace';
+    this.ctx.font = 'bold 18px monospace';
     this.#ctx.fillStyle = COLORS.UI_TEXT;
     this.#ctx.textAlign = 'left';
     this.#ctx.fillText(`$${this.#gameState.playerData.money + this.#moneyEarned}`, 20, hpBarY + 35);
-    this.#ctx.font = '10px monospace';
+    this.ctx.font = 'bold 13px monospace';
     this.#ctx.fillStyle = '#FFFF00';
     if (this.#moneyEarned > 0) {
       this.#ctx.fillText(`+${this.#moneyEarned}`, 100, hpBarY + 35);
@@ -1015,7 +1015,7 @@ export class Game {
     
     // Weapon damage stats - compact display
     if (this.#weaponDamageStats.size > 0) {
-      this.#ctx.font = '9px monospace';
+      this.ctx.font = 'bold 12px monospace';
       this.#ctx.fillStyle = '#FF8800';
       this.#ctx.textAlign = 'left';
       
@@ -1037,20 +1037,20 @@ export class Game {
     
     // Center section - Stage and Timer
     this.#ctx.fillStyle = COLORS.UI_TEXT;
-    this.#ctx.font = 'bold 20px monospace';
+    this.ctx.font = 'bold 26px monospace';
     this.#ctx.textAlign = 'center';
     this.#ctx.fillText(`STAGE ${this.#gameState.currentLevel}`, this.#canvas.logicalWidth / 2, barY + 5);
     
     const timeRemaining = Math.ceil(this.#roundTimer);
-    this.#ctx.font = 'bold 32px monospace';
+    this.ctx.font = 'bold 42px monospace';
     this.#ctx.fillStyle = timeRemaining <= 10 ? '#FF0000' : COLORS.UI_TEXT;
     this.#ctx.fillText(`${timeRemaining}`, this.#canvas.logicalWidth / 2, barY + 40);
-    this.#ctx.font = '12px monospace';
+    this.ctx.font = 'bold 16px monospace';
     this.#ctx.fillText('seconds', this.#canvas.logicalWidth / 2, barY + 55);
     
     // Right section - Stats
     this.#ctx.textAlign = 'right';
-    this.#ctx.font = '12px monospace';
+    this.ctx.font = 'bold 16px monospace';
     this.#ctx.fillStyle = COLORS.UI_TEXT;
     
     const rightX = this.#canvas.logicalWidth - 20;
@@ -1062,7 +1062,7 @@ export class Game {
     this.#ctx.fillText(`Weapons: ${weaponCount} | Items: ${itemCount}`, rightX, barY + 20);
     
     // Comprehensive stats display - compact format
-    this.#ctx.font = '9px monospace';
+    this.ctx.font = 'bold 12px monospace';
     this.#ctx.fillStyle = '#00FF00';
     const stats = this.#gameState.playerData.stats;
     
@@ -1086,12 +1086,12 @@ export class Game {
 
   renderRoundComplete() {
     this.#ctx.fillStyle = COLORS.UI_TEXT;
-    this.#ctx.font = '32px monospace';
+    this.ctx.font = 'bold 42px monospace';
     this.#ctx.textAlign = 'center';
     const centerY = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2;
     this.#ctx.fillText('ROUND COMPLETE!', this.#canvas.logicalWidth / 2, centerY - 40);
 
-    this.#ctx.font = '20px monospace';
+    this.ctx.font = 'bold 26px monospace';
     this.#ctx.fillText(
       `Money Earned: $${this.#moneyEarned}`,
       this.#canvas.logicalWidth / 2,
@@ -1101,13 +1101,13 @@ export class Game {
 
   renderGameOver() {
     this.#ctx.fillStyle = '#FF0000';
-    this.#ctx.font = '48px monospace';
+    this.ctx.font = 'bold 62px monospace';
     this.#ctx.textAlign = 'center';
     const centerY = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2;
     this.#ctx.fillText('GAME OVER', this.#canvas.logicalWidth / 2, centerY);
 
     this.#ctx.fillStyle = COLORS.UI_TEXT;
-    this.#ctx.font = '20px monospace';
+    this.ctx.font = 'bold 26px monospace';
     this.#ctx.fillText('Restarting...', this.#canvas.logicalWidth / 2, centerY + 40);
   }
   

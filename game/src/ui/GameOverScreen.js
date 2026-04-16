@@ -58,18 +58,18 @@ export class GameOverScreen {
     
     // Game Over text
     ctx.fillStyle = '#FF0000';
-    ctx.font = 'bold 48px monospace';
+    ctx.font = 'bold 62px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('GAME OVER', this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.2);
     
     // Death message
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = '20px monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.fillText('You have fallen...', this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.3);
     
     // Stats
     if (this.finalStats) {
-      ctx.font = '16px monospace';
+      ctx.font = 'bold 21px monospace';
       ctx.fillStyle = COLORS.UI_INACTIVE;
       ctx.fillText(`Final Wave: ${this.finalStats.wave || 1}`, this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.4);
       ctx.fillText(`Money Earned: $${this.finalStats.money || 0}`, this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.45);
@@ -77,10 +77,10 @@ export class GameOverScreen {
     }
     
     // Reset warning
-    ctx.font = '18px monospace';
+    ctx.font = 'bold 23px monospace';
     ctx.fillStyle = '#FF6600';
     ctx.fillText('ALL PROGRESS HAS BEEN RESET', this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.6);
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillStyle = COLORS.UI_INACTIVE;
     ctx.fillText('(Permadeath - Start from Level 1)', this.canvas.logicalWidth / 2, this.canvas.logicalHeight * 0.63);
     
@@ -91,7 +91,7 @@ export class GameOverScreen {
     ctx.strokeRect(this.canvas.logicalWidth / 2 - 100, buttonY, 200, 50);
     
     ctx.fillStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.font = '20px monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('CONTINUE', this.canvas.logicalWidth / 2, buttonY + 32);
   }

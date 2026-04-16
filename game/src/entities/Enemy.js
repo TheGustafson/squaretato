@@ -654,12 +654,12 @@ export class Enemy extends Entity {
     // Draw RAGE or SPEED text if active
     if (this.rageTextTimer !== undefined && this.rageTextTimer > 0) {
       ctx.fillStyle = `rgba(255, 0, 0, ${Math.min(1, this.rageTextTimer / 0.5)})`; // Fade out in last 0.5s
-      ctx.font = 'bold 12px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('RAGE', 0, -this.size - 10);
     } else if (this.speedTextTimer !== undefined && this.speedTextTimer > 0) {
       ctx.fillStyle = `rgba(0, 255, 255, ${Math.min(1, this.speedTextTimer / 0.5)})`;
-      ctx.font = 'bold 12px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('SPEED', 0, -this.size - 10);
     }

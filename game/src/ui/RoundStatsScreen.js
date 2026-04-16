@@ -85,7 +85,7 @@ export class RoundStatsScreen {
     
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = 'bold 32px monospace';
+    ctx.font = 'bold 42px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('WAVE COMPLETE', this.canvas.logicalWidth / 2, layout.titleY);
     
@@ -95,7 +95,7 @@ export class RoundStatsScreen {
     ctx.lineWidth = 2;
     ctx.strokeRect(btnRightX, layout.continueButtonY, 150, 40);
     ctx.fillStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('CONTINUE >', btnRightX + 75, layout.continueButtonY + 25);
     
@@ -103,7 +103,7 @@ export class RoundStatsScreen {
     if (!this.stats) return;
 
     ctx.textAlign = 'left';
-    ctx.font = '20px monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.fillStyle = '#00FFFF';
     
     // Left Column: Global
@@ -111,7 +111,7 @@ export class RoundStatsScreen {
     let y = layout.contentY;
 
     ctx.fillText('SUMMARY', leftX, y);
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.fillStyle = COLORS.UI_TEXT;
     
     y += 30;
@@ -131,10 +131,10 @@ export class RoundStatsScreen {
     const midX = this.canvas.logicalWidth / 2 - 60;
     y = layout.contentY;
     
-    ctx.font = '20px monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.fillStyle = '#FFD700';
     ctx.fillText('BY WEAPON', midX, y);
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillStyle = COLORS.UI_TEXT;
     
     y += 30;
@@ -166,10 +166,10 @@ export class RoundStatsScreen {
     const rightX = this.canvas.logicalWidth - 250;
     y = layout.contentY;
 
-    ctx.font = '20px monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.fillStyle = '#FF6666';
     ctx.fillText('TARGETS', rightX, y);
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillStyle = COLORS.UI_TEXT;
 
     y += 30;

@@ -465,7 +465,7 @@ export class EffectsSystem {
       ctx.globalAlpha = alpha * 0.7; // Make text slightly transparent
       ctx.fillStyle = text.color;
       // Use custom size if specified, otherwise default to 16px
-      ctx.font = text.size ? `bold ${text.size}px monospace` : 'bold 16px monospace';
+      ctx.font = text.size ? `bold ${text.size * 1.3}px monospace` : 'bold 21px monospace';
       ctx.fillText(text.text, text.x, text.y);
       ctx.restore();
     }

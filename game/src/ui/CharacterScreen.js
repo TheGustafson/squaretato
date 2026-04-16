@@ -203,7 +203,7 @@ export class CharacterScreen {
     ctx.lineWidth = 2;
     ctx.strokeRect(layout.padding, layout.backButtonY, 100, 40);
     ctx.fillStyle = this.backHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('< BACK', layout.padding + 50, layout.backButtonY + 25);
 
@@ -214,26 +214,26 @@ export class CharacterScreen {
       ctx.lineWidth = 2;
       ctx.strokeRect(rightX, layout.continueButtonY, 150, 40);
       ctx.fillStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-      ctx.font = '16px monospace';
+      ctx.font = 'bold 21px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('CONTINUE >', rightX + 75, layout.continueButtonY + 25);
     }
 
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = 'bold 32px monospace';
+    ctx.font = 'bold 42px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('STAT UPGRADES', this.canvas.logicalWidth / 2, layout.titleY);
 
     // Current stats
     const stats = this.gameState.playerData.stats;
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = COLORS.UI_TEXT;
     
     const statsX = this.canvas.logicalWidth - 280;
     ctx.fillText('CURRENT STATS', statsX, layout.statsY);
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillText(`Health: ${stats.health}`, statsX, layout.statsY + 30);
     ctx.fillText(`Speed: ${stats.speed}`, statsX, layout.statsY + 50);
     ctx.fillText(`Damage: ${stats.damage}`, statsX, layout.statsY + 70);
@@ -245,7 +245,7 @@ export class CharacterScreen {
     ctx.fillText(`Regen: ${(stats.regeneration * 10).toFixed(1)} HP/s`, statsX, layout.statsY + 190);
 
     // Resources
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.fillText(`Money: $${this.gameState.playerData.money}`, 50, layout.statsY);
 
     // Upgrades header
@@ -253,7 +253,7 @@ export class CharacterScreen {
     
     // Scroll indicator if needed
     if (this.maxScroll > 0) {
-      ctx.font = '10px monospace';
+      ctx.font = 'bold 13px monospace';
       ctx.fillStyle = COLORS.UI_INACTIVE;
       ctx.textAlign = 'right';
       ctx.fillText('(Scroll to see more)', 50 + layout.upgradeBoxWidth, layout.upgradesY - 20);
@@ -285,7 +285,7 @@ export class CharacterScreen {
       ctx.strokeRect(50, y, layout.upgradeBoxWidth, layout.upgradeBoxHeight);
       
       // Name
-      ctx.font = '14px monospace';
+      ctx.font = 'bold 18px monospace';
       ctx.fillStyle = canAfford ? COLORS.UI_TEXT : '#003300';
       ctx.textAlign = 'left';
       ctx.fillText(upgrade.name, 60, y + 20);

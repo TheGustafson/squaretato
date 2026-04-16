@@ -286,12 +286,12 @@ export class UpgradeScreen {
     
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = 'bold 36px monospace';
+    ctx.font = 'bold 47px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('CHOOSE AN UPGRADE', this.canvas.logicalWidth / 2, layout.titleY);
     
     // Subtitle
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.fillStyle = COLORS.UI_INACTIVE;
     ctx.fillText('Select one upgrade to improve your character', this.canvas.logicalWidth / 2, layout.titleY + 30);
     
@@ -313,18 +313,18 @@ export class UpgradeScreen {
       ctx.strokeRect(cardX, layout.cardsY, layout.cardWidth, layout.cardHeight);
       
       // Icon
-      ctx.font = '48px serif';
+      ctx.font = 'bold 62px monospace';
       ctx.textAlign = 'center';
       ctx.fillStyle = COLORS.UI_TEXT;
       ctx.fillText(upgrade.icon, cardX + layout.cardWidth / 2, layout.cardsY + 60);
       
       // Name
-      ctx.font = 'bold 16px monospace';
+      ctx.font = 'bold 21px monospace';
       ctx.fillStyle = COLORS.UI_TEXT;
       ctx.fillText(upgrade.name, cardX + layout.cardWidth / 2, layout.cardsY + 100);
       
       // Description
-      ctx.font = '12px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.fillStyle = COLORS.UI_INACTIVE;
       const lines = this.wrapText(upgrade.description, layout.cardWidth - 20);
       for (let j = 0; j < lines.length; j++) {
@@ -343,7 +343,7 @@ export class UpgradeScreen {
       ctx.lineWidth = 2;
       ctx.strokeRect(rerollX, layout.rerollY, layout.buttonWidth, layout.buttonHeight);
       
-      ctx.font = '14px monospace';
+      ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'center';
       ctx.fillStyle = canAffordReroll ? (isRerollHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE) : '#FF0000';
       ctx.fillText(`REROLL ($${rerollCost})`, rerollX + layout.buttonWidth / 2, layout.rerollY + 25);
@@ -357,12 +357,12 @@ export class UpgradeScreen {
     ctx.lineWidth = 2;
     ctx.strokeRect(skipX, layout.rerollY, layout.buttonWidth, layout.buttonHeight);
     
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillStyle = isSkipHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
     ctx.fillText('SKIP', skipX + layout.buttonWidth / 2, layout.rerollY + 25);
     
     // Money display
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.textAlign = 'right';
     ctx.fillStyle = '#FFD700';
     ctx.fillText(`Money: $${this.gameState.playerData.money}`, this.canvas.logicalWidth - layout.padding, layout.padding);

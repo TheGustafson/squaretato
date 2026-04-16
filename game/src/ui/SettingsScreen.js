@@ -88,18 +88,18 @@ export class SettingsScreen {
     ctx.lineWidth = 2;
     ctx.strokeRect(20, 20, 100, 40);
     ctx.fillStyle = this.backHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('< BACK', 70, 45);
 
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = 'bold 32px monospace';
+    ctx.font = 'bold 42px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('SETTINGS', this.canvas.logicalWidth / 2, 60);
 
     // Control scheme
-    ctx.font = '20px monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.fillText('CONTROL SCHEME', this.canvas.logicalWidth / 2, 120);
 
     // Mouse option
@@ -110,7 +110,7 @@ export class SettingsScreen {
                    this.hoveredOption === 'mouse' ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
     ctx.lineWidth = isMouseActive ? 3 : 2;
     ctx.strokeRect(200, 150, 150, 50);
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.fillText('MOUSE', 275, 180);
 
     // Keyboard option
@@ -125,7 +125,7 @@ export class SettingsScreen {
 
     // Aim Mode title
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = '20px monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.fillText('AIM MODE', this.canvas.logicalWidth / 2, 220);
 
     // Aim Auto option
@@ -136,7 +136,7 @@ export class SettingsScreen {
                    this.hoveredOption === 'aim_auto' ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
     ctx.lineWidth = isAimAuto ? 3 : 2;
     ctx.strokeRect(200, 230, 150, 50);
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.fillText('AUTO', 275, 260);
 
     // Aim Manual option
@@ -150,7 +150,7 @@ export class SettingsScreen {
     ctx.fillText('MANUAL', 525, 260);
 
     // Instructions
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillStyle = COLORS.UI_INACTIVE;
     ctx.fillText('Mouse: Follows cursor | WASD: Use Keys/Joystick', this.canvas.logicalWidth / 2, 310);
     ctx.fillText('Auto Aim: Nearest enemy | Manual Aim: Mouse cursor', this.canvas.logicalWidth / 2, 330);
@@ -160,12 +160,12 @@ export class SettingsScreen {
     ctx.lineWidth = 2;
     ctx.strokeRect(this.canvas.logicalWidth / 2 - 100, 380, 200, 40);
     ctx.fillStyle = this.resetHovered ? '#FF0000' : '#660000';
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.fillText('RESET PROGRESS', this.canvas.logicalWidth / 2, 405);
 
     // Controls info
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillText('Press ESC during game to return to menu', this.canvas.logicalWidth / 2, 460);
   }
 }

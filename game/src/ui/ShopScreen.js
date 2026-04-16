@@ -528,7 +528,7 @@ export class ShopScreen {
       ctx.lineWidth = 2;
       ctx.strokeRect(this.canvas.logicalWidth / 2 - 75, layout.continueButtonY, 150, 40);
       ctx.fillStyle = this.continueHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-      ctx.font = '16px monospace';
+      ctx.font = 'bold 21px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('CONTINUE', this.canvas.logicalWidth / 2, layout.continueButtonY + 25);
     } else {
@@ -537,35 +537,35 @@ export class ShopScreen {
       ctx.lineWidth = 2;
       ctx.strokeRect(layout.padding, layout.backButtonY, 100, 40);
       ctx.fillStyle = this.backHovered ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-      ctx.font = '16px monospace';
+      ctx.font = 'bold 21px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('< BACK', layout.padding + 50, layout.backButtonY + 25);
     }
     
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = 'bold 32px monospace';
+    ctx.font = 'bold 42px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('SHOP', this.canvas.logicalWidth / 2, layout.titleY);
     
     // Weapon slots indicator (only show for weapons tab)
     if (this.activeTab === 'weapons') {
       const ownedWeapons = this.gameState.playerData.weapons || ['pistol'];
-      ctx.font = '14px monospace';
+      ctx.font = 'bold 18px monospace';
       ctx.fillStyle = ownedWeapons.length >= this.maxWeapons ? '#FF0000' : COLORS.UI_TEXT;
       ctx.textAlign = 'left';
       ctx.fillText(`Weapon Slots: ${ownedWeapons.length}/${this.maxWeapons}`, layout.padding, layout.titleY + 30);
       
       // Show warning if at max (positioned to the right of weapon slots text)
       if (ownedWeapons.length >= this.maxWeapons) {
-        ctx.font = '12px monospace';
+        ctx.font = 'bold 16px monospace';
         ctx.fillStyle = '#FF0000';
         ctx.fillText('(Sell to buy more)', layout.padding + 150, layout.titleY + 30);
       }
     }
     
     // Money display
-    ctx.font = '20px monospace';
+    ctx.font = 'bold 26px monospace';
     ctx.fillStyle = '#FFD700';
     ctx.textAlign = 'right';
     ctx.fillText(`$${this.gameState.playerData.money}`, this.canvas.logicalWidth - layout.padding, layout.titleY);
@@ -584,7 +584,7 @@ export class ShopScreen {
     if (this.activeTab === 'weapons') {
       ctx.fillRect(weaponsTabX, layout.tabsY, tabWidth, 3);
     }
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('WEAPONS', weaponsTabX + tabWidth / 2, layout.tabsY + 25);
     
@@ -644,7 +644,7 @@ export class ShopScreen {
       ctx.strokeRect(layout.padding * 2, itemY, layout.itemWidth, layout.itemHeight - 5);
       
       // Item name with level indicator for weapons and stack indicator for all items
-      ctx.font = 'bold 16px monospace';
+      ctx.font = 'bold 21px monospace';
       ctx.textAlign = 'left';
       ctx.fillStyle = item.owned ? '#00FF00' : COLORS.UI_TEXT;
       let displayName = item.name;
@@ -676,7 +676,7 @@ export class ShopScreen {
       ctx.fillText(displayName, layout.padding * 3, itemY + 25);
       
       // Item description (with special cases for certain items)
-      ctx.font = '12px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.fillStyle = COLORS.UI_INACTIVE;
       let description = item.description;
       
@@ -707,7 +707,7 @@ export class ShopScreen {
       ctx.fillText(description, layout.padding * 3, itemY + 45);
       
       // Price or owned status
-      ctx.font = '14px monospace';
+      ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'right';
       if (item.owned) {
         // Show upgrade button for weapons that can be upgraded
@@ -729,7 +729,7 @@ export class ShopScreen {
             ctx.lineWidth = 1;
             ctx.strokeRect(upgradeButtonX, upgradeButtonY, 80, 25);
             
-            ctx.font = '11px monospace';
+            ctx.font = 'bold 14px monospace';
             ctx.fillStyle = this.hoveredUpgradeButton === item ? '#FFD700' : (canAfford ? COLORS.UI_TEXT : '#FF0000');
             ctx.textAlign = 'center';
             ctx.fillText(`UPGRADE $${upgradeCost}`, upgradeButtonX + 40, upgradeButtonY + 16);
@@ -749,7 +749,7 @@ export class ShopScreen {
               ctx.lineWidth = 1;
               ctx.strokeRect(sellButtonX, sellButtonY, 80, 25);
               
-              ctx.font = '11px monospace';
+              ctx.font = 'bold 14px monospace';
               ctx.fillStyle = this.hoveredSellButton === item ? '#FFD700' : COLORS.UI_INACTIVE;
               ctx.textAlign = 'center';
               ctx.fillText(`SELL $${sellPrice}`, sellButtonX + 40, sellButtonY + 16);
@@ -759,7 +759,7 @@ export class ShopScreen {
               ctx.lineWidth = 1;
               ctx.strokeRect(sellButtonX, sellButtonY, 80, 25);
               
-              ctx.font = '11px monospace';
+              ctx.font = 'bold 14px monospace';
               ctx.fillStyle = '#660000';
               ctx.textAlign = 'center';
               ctx.fillText(`SELL $${sellPrice}`, sellButtonX + 40, sellButtonY + 16);
@@ -774,7 +774,7 @@ export class ShopScreen {
             const isLastWeapon = (this.gameState.playerData.weapons || ['pistol']).length <= 1;
             
             if (!isLastWeapon) {
-              ctx.font = '10px monospace';
+              ctx.font = 'bold 13px monospace';
               ctx.fillStyle = this.hoveredSellButton === item ? '#FF6666' : '#666666';
               ctx.textAlign = 'center';
               ctx.fillText(`[Sell $${sellPrice}]`, sellButtonX + 40, sellButtonY + 16);
@@ -807,17 +807,17 @@ export class ShopScreen {
             const nextStack = currentStacks + 1;
             
             // Draw price in normal size
-            ctx.font = '14px monospace';
+            ctx.font = 'bold 18px monospace';
             ctx.textAlign = 'right';
             ctx.fillStyle = canAfford ? '#FFD700' : '#FF0000';
             ctx.fillText(`$${actualCost}`, layout.padding * 2 + layout.itemWidth - 20, itemY + 35);
             
             // Draw "BUY #n" in smaller yellow text above the price
-            ctx.font = '10px monospace';
+            ctx.font = 'bold 13px monospace';
             ctx.fillStyle = '#FFD700';
             ctx.fillText(`BUY #${nextStack}`, layout.padding * 2 + layout.itemWidth - 20, itemY + 20);
           } else {
-            ctx.font = '14px monospace';
+            ctx.font = 'bold 18px monospace';
             ctx.textAlign = 'right';
             ctx.fillStyle = canAfford ? '#FFD700' : '#FF0000';
             ctx.fillText(`$${actualCost}`, layout.padding * 2 + layout.itemWidth - 20, itemY + 35);

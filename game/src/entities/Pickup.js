@@ -25,7 +25,7 @@ export class Pickup extends Entity {
     
     if (this.type === 'money') {
       // Draw money value
-      ctx.font = '14px monospace';
+      ctx.font = 'bold 18px monospace';
       ctx.fillStyle = '#FFD700';  // Gold color for money
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

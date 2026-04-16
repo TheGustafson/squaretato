@@ -161,12 +161,12 @@ export class Menu {
 
     // Title
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = 'bold 48px monospace';
+    ctx.font = 'bold 62px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('SQUARETATO', this.canvas.logicalWidth / 2, layout.titleY);
 
     // Subtitle
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.fillText('SELECT LEVEL', this.canvas.logicalWidth / 2, layout.subtitleY);
 
     // Level grid
@@ -210,7 +210,7 @@ export class Menu {
         }
         
         // Draw level number
-        ctx.font = 'bold 20px monospace';
+        ctx.font = 'bold 26px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
@@ -243,18 +243,18 @@ export class Menu {
           ctx.lineWidth = 2;
           ctx.strokeRect(boxX - 2, boxY - 2, this.levelBoxSize + 4, this.levelBoxSize + 4);
           
-          ctx.font = '10px monospace';
+          ctx.font = 'bold 13px monospace';
           ctx.fillStyle = '#00FF00';
           ctx.fillText('PLAY', boxX + this.levelBoxSize / 2, boxY + this.levelBoxSize - 8);
         }
         
         // Add special level indicators (FLOOD and BOSS)
         if (level === 9 || level === 13 || level === 17 || level === 24 || level === 27) {
-          ctx.font = 'bold 10px monospace';
+          ctx.font = 'bold 13px monospace';
           ctx.fillStyle = '#FF0000';
           ctx.fillText('FLOOD', boxX + this.levelBoxSize / 2, boxY + 12);
         } else if (level % 10 === 0) {
-          ctx.font = 'bold 10px monospace';
+          ctx.font = 'bold 13px monospace';
           ctx.fillStyle = '#A020F0';
           ctx.fillText('BOSS', boxX + this.levelBoxSize / 2, boxY + 12);
         }
@@ -267,7 +267,7 @@ export class Menu {
     ctx.strokeRect(layout.padding, layout.buttonAreaY, layout.buttonWidth, layout.buttonHeight);
     
     ctx.fillStyle = this.selectedOption === 'upgrades' ? COLORS.UI_TEXT : COLORS.UI_INACTIVE;
-    ctx.font = '16px monospace';
+    ctx.font = 'bold 21px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('UPGRADES', layout.padding + layout.buttonWidth / 2, layout.buttonAreaY + layout.buttonHeight / 2 + 5);
 
@@ -288,7 +288,7 @@ export class Menu {
 
     // Stats display
     ctx.fillStyle = COLORS.UI_TEXT;
-    ctx.font = '14px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(`Money: $${this.gameState.playerData.money}`, layout.padding, layout.statsAreaY);
   }

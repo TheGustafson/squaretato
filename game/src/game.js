@@ -68,6 +68,8 @@ export class Game {
     // Initialize UI screens
     this.menu = new Menu(canvas, this.#gameState);
     this.characterScreen = new CharacterScreen(canvas, this.#gameState);
+    this.characterScreen.onBackClick = () => this.showMenu();
+    this.characterScreen.onContinueClick = () => this.startLevel(this.#gameState.currentLevel + 1);
     this.settingsScreen = new SettingsScreen(canvas, this.#gameState);
     this.shopScreen = new ShopScreen(canvas, this.#gameState, this.#soundSystem);
     this.upgradeScreen = new UpgradeScreen(canvas, this.#gameState, this.#soundSystem);
@@ -83,7 +85,6 @@ export class Game {
     this.menu.onShopClick = () => this.showShop();
     this.menu.onSettingsClick = () => this.showSettings();
     
-    this.characterScreen.onBackClick = () => this.showMenu();
     this.settingsScreen.onBackClick = () => this.showMenu();
     this.shopScreen.onBackClick = () => this.showMenu();
     this.shopScreen.onContinueClick = () => this.showCharacterScreen(true);  // For post-wave shop
@@ -223,11 +224,12 @@ export class Game {
     this.#canvas.style.cursor = 'pointer';
   }
   
-  showCharacterScreen() {
+  showCharacterScreen(showContinueButton = false) {
     this.#gameState.setState(GAME_STATES.MENU);
     this.activeScreen = 'character';
     this.menu.deactivate();
     this.characterScreen.activate();
+    this.characterScreen.showContinueButton = showContinueButton;
     this.settingsScreen.deactivate();
     this.shopScreen.deactivate();
   }

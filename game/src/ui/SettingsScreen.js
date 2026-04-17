@@ -67,6 +67,14 @@ export class SettingsScreen {
     } else if (this.hoveredOption === 'aim_manual') {
       this.gameState.playerData.aimMode = 'manual';
       this.gameState.savePlayerData();
+    } else if (this.hoveredOption === 'music_on') {
+      this.gameState.playerData.musicEnabled = true;
+      this.gameState.savePlayerData();
+      this.onMusicChange(true);
+    } else if (this.hoveredOption === 'music_off') {
+      this.gameState.playerData.musicEnabled = false;
+      this.gameState.savePlayerData();
+      this.onMusicChange(false);
     } else if (this.resetHovered) {
       if (confirm('Reset all progress? This cannot be undone!')) {
         this.gameState.resetProgress();
@@ -74,9 +82,8 @@ export class SettingsScreen {
     }
   }
 
-  onBackClick() {
-    console.log('Back to menu');
-  }
+  onBackClick() {}
+  onMusicChange(enabled) {}
 
   render(ctx) {
     // Clear

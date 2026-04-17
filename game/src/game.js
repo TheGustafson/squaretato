@@ -44,7 +44,7 @@ export class Game {
   #vacuumActive;
   #vacuumDuration;
   #bgm;
-  #musicRetryTimer;
+  #musicStarted;
   #joystick;
   #lastTouchY = null;
 
@@ -81,21 +81,27 @@ export class Game {
     this.#bgm = new Audio('Last_Quarter_Run.mp3');
     this.#bgm.loop = true;
     this.#bgm.volume = 0.5;
-    this.#musicRetryTimer = 0;
+    this.#musicStarted = false;
 
-    // Secure Auto-Play Policy Bypass
-    const unlockAudio = () => {
-      if (this.#bgm && this.#bgm.paused && this.#gameState.playerData.musicEnabled !== false) {
-        this.#bgm.play().catch(() => {});
-      }
-      // Clean up after explicit unlock
-      window.removeEventListener('mousedown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
+    // Browser autoplay policy requires a user gesture to start audio.
+    // We attach listeners to common gestures and keep retrying until it works.
+    const tryPlayMusic = () => {
+      if (this.#musicStarted) return;
+      if (this.#gameState.playerData.musicEnabled === false) return;
+      this.#bgm.play().then(() => {
+        this.#musicStarted = true;
+        // Only remove listeners once playback has actually started
+        window.removeEventListener('click', tryPlayMusic, true);
+        window.removeEventListener('touchend', tryPlayMusic, true);
+        window.removeEventListener('keydown', tryPlayMusic, true);
+      }).catch(() => {
+        // Play was rejected — listener stays alive to retry on next gesture
+      });
     };
-    window.addEventListener('mousedown', unlockAudio);
-    window.addEventListener('touchstart', unlockAudio);
-    window.addEventListener('keydown', unlockAudio);
+    // Use capture phase so we catch events before anything else
+    window.addEventListener('click', tryPlayMusic, true);
+    window.addEventListener('touchend', tryPlayMusic, true);
+    window.addEventListener('keydown', tryPlayMusic, true);
 
     this.roundStatsScreen = new RoundStatsScreen(canvas, this.#gameState);
     this.pauseMenu = new PauseMenu(canvas);
@@ -109,6 +115,17 @@ export class Game {
     this.menu.onSettingsClick = () => this.showSettings();
     
     this.settingsScreen.onBackClick = () => this.showMenu();
+    this.settingsScreen.onMusicChange = (enabled) => {
+      if (enabled) {
+        // Re-enable: try to play (will succeed since user just clicked)
+        this.#musicStarted = false;
+        this.#bgm.play().then(() => { this.#musicStarted = true; }).catch(() => {});
+      } else {
+        // Disable: pause immediately
+        this.#bgm.pause();
+        this.#musicStarted = false;
+      }
+    };
     this.shopScreen.onBackClick = () => this.showMenu();
     this.shopScreen.onContinueClick = () => this.showCharacterScreen(true);  // For post-wave shop
     this.upgradeScreen.onUpgradeSelected = () => this.showShopAfterWave(); // Force open Shop next

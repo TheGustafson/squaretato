@@ -43,6 +43,8 @@ export class Game {
   #vacuumWaitTimer;
   #vacuumActive;
   #vacuumDuration;
+  #bgm;
+  #musicRetryTimer;
   #joystick;
   #lastTouchY = null;
 

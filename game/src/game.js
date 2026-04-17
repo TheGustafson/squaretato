@@ -76,6 +76,11 @@ export class Game {
     this.shopScreen = new ShopScreen(canvas, this.#gameState, this.#soundSystem);
     this.upgradeScreen = new UpgradeScreen(canvas, this.#gameState, this.#soundSystem);
     this.gameOverScreen = new GameOverScreen(canvas, this.#gameState, () => this.showMenu());
+
+    // Background Music
+    this.#bgm = new Audio('Last_Quarter_Run.mp3');
+    this.#bgm.loop = true;
+    this.#bgm.volume = 0.5;
     this.#musicRetryTimer = 0;
 
     // Secure Auto-Play Policy Bypass

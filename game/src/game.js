@@ -75,7 +75,23 @@ export class Game {
     this.settingsScreen = new SettingsScreen(canvas, this.#gameState);
     this.shopScreen = new ShopScreen(canvas, this.#gameState, this.#soundSystem);
     this.upgradeScreen = new UpgradeScreen(canvas, this.#gameState, this.#soundSystem);
-    this.gameOverScreen = new GameOverScreen(canvas, this.#gameState);
+    this.gameOverScreen = new GameOverScreen(canvas, this.#gameState, () => this.showMenu());
+    this.#musicRetryTimer = 0;
+
+    // Secure Auto-Play Policy Bypass
+    const unlockAudio = () => {
+      if (this.#bgm && this.#bgm.paused && this.#gameState.playerData.musicEnabled !== false) {
+        this.#bgm.play().catch(() => {});
+      }
+      // Clean up after explicit unlock
+      window.removeEventListener('mousedown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+    window.addEventListener('mousedown', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+
     this.roundStatsScreen = new RoundStatsScreen(canvas, this.#gameState);
     this.pauseMenu = new PauseMenu(canvas);
     this.activeScreen = 'menu';
@@ -1134,6 +1150,21 @@ export class Game {
 
     // Draw grid (in game area only)
     this.drawGrid();
+
+    // Render Tutorial Text on Level 1 natively
+    if (this.#gameState.currentLevel === 1 && this.#roundTimer > 55) {
+      if (Math.floor(this.#roundTimer * 2) % 2 === 0) { // Blink on half seconds
+        const isMobile = document.body.clientHeight > document.body.clientWidth;
+        const msg = isMobile ? "USE VIRTUAL JOYSTICK TO MOVE" : "USE W A S D TO MOVE";
+        this.#ctx.save();
+        this.#ctx.fillStyle = COLORS.UI_TEXT;
+        this.#ctx.font = 'bold 36px monospace';
+        this.#ctx.textAlign = 'center';
+        this.#ctx.globalAlpha = 0.8;
+        this.#ctx.fillText(msg, this.#canvas.logicalWidth / 2, this.#canvas.logicalHeight / 2 + 150);
+        this.#ctx.restore();
+      }
+    }
 
     // Render pickups (below other entities)
     for (const pickup of this.#pickups) {

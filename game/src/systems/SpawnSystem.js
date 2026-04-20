@@ -9,6 +9,8 @@ export class SpawnSystem {
     this.totalTime = 0;
     this.spawnTimer = 0;
     this.effectsSystem = effectsSystem;
+    this.bossQueueCount = 0;
+    this.bossSpawnDelayTimer = 0;
   }
 
   update(deltaTime, enemies, canvasWidth, canvasHeight, player = null, projectiles = null) {
@@ -16,8 +18,32 @@ export class SpawnSystem {
     this.timeSinceLastSpawn += deltaTime;
     this.spawnTimer += deltaTime;
 
+    // Boss Queue Logic
+    const bossAlive = enemies.some(e => e.behavior === 'boss');
+    if (!bossAlive && this.bossQueueCount > 0) {
+      if (this.bossSpawnDelayTimer > 0) {
+        this.bossSpawnDelayTimer -= deltaTime;
+      }
+      if (this.bossSpawnDelayTimer <= 0) {
+        this.bossQueueCount--;
+        const boss = Enemy.spawnFromEdge(canvasWidth, canvasHeight, GAME_CONFIG.UI_BAR_HEIGHT, this.level, 'boss');
+        boss.effectsSystem = this.effectsSystem;
+        enemies.push(boss);
+        this.bossSpawnDelayTimer = 5.0; // Wait 5s before NEXT boss queue trigger
+      }
+    } else if (bossAlive) {
+      this.bossSpawnDelayTimer = 5.0; // Reset delay explicitly if one inherently exists
+    }
+
     // Calculate current spawn rate based on wave and time
-    const spawnRate = getSpawnRate(this.level, this.totalTime);
+    let spawnRate = getSpawnRate(this.level, this.totalTime);
+    
+    // Scale mathematically for flood waves exactly
+    const isFlood = (this.level === 9 || this.level === 13 || this.level === 17 || this.level === 24 || this.level === 27);
+    if (isFlood) {
+      spawnRate *= 3.0; // Produce literally 3x as many geometry internally (300% total density)
+    }
+    
     const timeBetweenSpawns = 1 / spawnRate; // Convert to seconds between spawns
 
     if (this.timeSinceLastSpawn >= timeBetweenSpawns) {
@@ -28,7 +54,17 @@ export class SpawnSystem {
 
   spawnEnemy(enemies, canvasWidth, canvasHeight, player, projectiles) {
     // Select enemy type based on wave distribution
-    const enemyType = selectEnemyType(this.level);
+    let enemyType = selectEnemyType(this.level);
+    
+    // 50% reduced rate for wave pattern enemies
+    if (enemyType === 'wave' && Math.random() < 0.5) {
+      enemyType = 'basic';
+    }
+    
+    // 50% reduced rate for tank pattern enemies
+    if (enemyType === 'tank' && Math.random() < 0.5) {
+      enemyType = 'basic';
+    }
     
     // Handle wave enemies spawning in groups
     if (enemyType === 'wave') {
@@ -43,6 +79,13 @@ export class SpawnSystem {
           enemy.position.x += (i - groupSize/2) * 20;  // Tighter spacing
         } else {  // Left or right
           enemy.position.y += (i - groupSize/2) * 20;  // Tighter spacing
+        }
+
+        // Cancel spawn if too close to player
+        if (player && player.alive) {
+          const dx = enemy.position.x - player.position.x;
+          const dy = enemy.position.y - player.position.y;
+          if (Math.sqrt(dx * dx + dy * dy) < 200) continue;
         }
         
         // Give them varied wave patterns using balance config
@@ -64,15 +107,54 @@ export class SpawnSystem {
       return;
     }
     
+    // Interrupt if Boss explicitly
+    if (enemyType === 'boss') {
+      const bossAlive = enemies.some(e => e.behavior === 'boss');
+      if (bossAlive || this.bossSpawnDelayTimer > 0) {
+        this.bossQueueCount++;
+        return; // Prevent simultaneous spawning entirely
+      } else {
+        this.bossSpawnDelayTimer = 5.0; // Immediately set lock for active spawn
+      }
+    }
+
     let enemy;
     
+    const isFlood = (this.level === 9 || this.level === 13 || this.level === 17 || this.level === 24 || this.level === 27);
+    
     // Spawn based on enemy type
-    if (enemyType === 'tracker') {
-      // Trackers spawn inside the game area
+    if (isFlood && enemyType === 'tracker') {
+      enemy = Enemy.spawnFromEdge(canvasWidth, canvasHeight, GAME_CONFIG.UI_BAR_HEIGHT, this.level, enemyType);
+      
+      const spawnPoint = Math.floor(Math.random() * 6);
+      const midY = GAME_CONFIG.UI_BAR_HEIGHT + (canvasHeight - GAME_CONFIG.UI_BAR_HEIGHT) / 2;
+      
+      if (spawnPoint === 0) { enemy.position.x = 0; enemy.position.y = GAME_CONFIG.UI_BAR_HEIGHT; } // Top-Left
+      else if (spawnPoint === 1) { enemy.position.x = canvasWidth; enemy.position.y = GAME_CONFIG.UI_BAR_HEIGHT; } // Top-Right
+      else if (spawnPoint === 2) { enemy.position.x = 0; enemy.position.y = canvasHeight; } // Bottom-Left
+      else if (spawnPoint === 3) { enemy.position.x = canvasWidth; enemy.position.y = canvasHeight; } // Bottom-Right
+      else if (spawnPoint === 4) { enemy.position.x = 0; enemy.position.y = midY; } // Mid-Left
+      else { enemy.position.x = canvasWidth; enemy.position.y = midY; } // Mid-Right
+      
+      // Boost basic tracker speed by 50%
+      if (!enemy.isEnraged) {
+        enemy.speed *= 1.5;
+      }
+    } else if (enemyType === 'tracker') {
+      // Trackers spawn inside the game area normally
       enemy = Enemy.spawnInside(canvasWidth, canvasHeight, GAME_CONFIG.UI_BAR_HEIGHT, this.level, enemyType);
     } else {
       // All other enemies spawn from edges
       enemy = Enemy.spawnFromEdge(canvasWidth, canvasHeight, GAME_CONFIG.UI_BAR_HEIGHT, this.level, enemyType);
+    }
+    
+    // Cancel spawn if too close to player
+    if (player && player.alive) {
+      const dx = enemy.position.x - player.position.x;
+      const dy = enemy.position.y - player.position.y;
+      if (Math.sqrt(dx * dx + dy * dy) < 200) {
+        return;
+      }
     }
     
     // Pass player reference for enemies that need it immediately

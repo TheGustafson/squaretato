@@ -1,5 +1,6 @@
 import { Player } from './entities/Player.js';
 import { Pickup } from './entities/Pickup.js';
+import { Enemy } from './entities/Enemy.js';
 import { WeaponSystem, createWeapon } from './systems/WeaponSystem.js';
 import { SpawnSystem } from './systems/SpawnSystem.js';
 import { GameState } from './systems/GameState.js';
@@ -9,9 +10,11 @@ import { SettingsScreen } from './ui/SettingsScreen.js';
 import { ShopScreen } from './ui/ShopScreen.js';
 import { UpgradeScreen } from './ui/UpgradeScreen.js';
 import { GameOverScreen } from './ui/GameOverScreen.js';
+import { RoundStatsScreen } from './ui/RoundStatsScreen.js';
 import { PauseMenu } from './ui/PauseMenu.js';
 import { EffectsSystem } from './systems/EffectsSystem.js';
 import { SoundSystem } from './systems/SoundSystem.js';
+import { VirtualJoystick } from './ui/VirtualJoystick.js';
 import { GAME_CONFIG, GAME_STATES, COLORS } from './constants.js';
 import { BALANCE } from './config/balance.js';
 
@@ -34,6 +37,16 @@ export class Game {
   #lastCountdownSecond;
   #totalKills;
   #isPaused;
+  #weaponDamageStats;  // Track damage by weapon type
+  #roundStats;
+  #delayedRageTimer;
+  #vacuumWaitTimer;
+  #vacuumActive;
+  #vacuumDuration;
+  #bgm;
+  #musicStarted;
+  #joystick;
+  #lastTouchY = null;
 
   constructor(canvas, ctx, input) {
     this.#canvas = canvas;
@@ -48,6 +61,7 @@ export class Game {
     this.#moneyEarned = 0;
     this.#totalKills = 0;
     this.#isPaused = false;
+    this.#weaponDamageStats = new Map();  // Initialize damage tracking
     
     // Initialize systems
     this.#effectsSystem = new EffectsSystem(canvas);
@@ -56,12 +70,43 @@ export class Game {
     // Initialize UI screens
     this.menu = new Menu(canvas, this.#gameState);
     this.characterScreen = new CharacterScreen(canvas, this.#gameState);
+    this.characterScreen.onBackClick = () => this.showMenu();
+    this.characterScreen.onContinueClick = () => this.startLevel(this.#gameState.currentLevel + 1);
     this.settingsScreen = new SettingsScreen(canvas, this.#gameState);
     this.shopScreen = new ShopScreen(canvas, this.#gameState, this.#soundSystem);
     this.upgradeScreen = new UpgradeScreen(canvas, this.#gameState, this.#soundSystem);
-    this.gameOverScreen = new GameOverScreen(canvas, this.#gameState);
+    this.gameOverScreen = new GameOverScreen(canvas, this.#gameState, () => this.showMenu());
+
+    // Background Music
+    this.#bgm = new Audio('Last_Quarter_Run.mp3');
+    this.#bgm.loop = true;
+    this.#bgm.volume = 0.5;
+    this.#musicStarted = false;
+
+    // Browser autoplay policy requires a user gesture to start audio.
+    // We attach listeners to common gestures and keep retrying until it works.
+    const tryPlayMusic = () => {
+      if (this.#musicStarted) return;
+      if (this.#gameState.playerData.musicEnabled === false) return;
+      this.#bgm.play().then(() => {
+        this.#musicStarted = true;
+        // Only remove listeners once playback has actually started
+        window.removeEventListener('click', tryPlayMusic, true);
+        window.removeEventListener('touchend', tryPlayMusic, true);
+        window.removeEventListener('keydown', tryPlayMusic, true);
+      }).catch(() => {
+        // Play was rejected — listener stays alive to retry on next gesture
+      });
+    };
+    // Use capture phase so we catch events before anything else
+    window.addEventListener('click', tryPlayMusic, true);
+    window.addEventListener('touchend', tryPlayMusic, true);
+    window.addEventListener('keydown', tryPlayMusic, true);
+
+    this.roundStatsScreen = new RoundStatsScreen(canvas, this.#gameState);
     this.pauseMenu = new PauseMenu(canvas);
     this.activeScreen = 'menu';
+    this.#joystick = new VirtualJoystick(canvas);
     
     // Setup menu callbacks
     this.menu.onLevelSelect = (level) => this.startLevel(level);
@@ -69,11 +114,22 @@ export class Game {
     this.menu.onShopClick = () => this.showShop();
     this.menu.onSettingsClick = () => this.showSettings();
     
-    this.characterScreen.onBackClick = () => this.showMenu();
     this.settingsScreen.onBackClick = () => this.showMenu();
+    this.settingsScreen.onMusicChange = (enabled) => {
+      if (enabled) {
+        // Re-enable: try to play (will succeed since user just clicked)
+        this.#musicStarted = false;
+        this.#bgm.play().then(() => { this.#musicStarted = true; }).catch(() => {});
+      } else {
+        // Disable: pause immediately
+        this.#bgm.pause();
+        this.#musicStarted = false;
+      }
+    };
     this.shopScreen.onBackClick = () => this.showMenu();
-    this.shopScreen.onContinueClick = () => this.showMenu();  // For post-wave shop
-    this.upgradeScreen.onUpgradeSelected = () => this.showShopAfterWave();
+    this.shopScreen.onContinueClick = () => this.showCharacterScreen(true);  // For post-wave shop
+    this.upgradeScreen.onUpgradeSelected = () => this.showShopAfterWave(); // Force open Shop next
+    this.roundStatsScreen.onContinueClick = () => this.showUpgradeScreen();
     this.gameOverScreen.onContinueClick = () => this.showMenu();
     this.pauseMenu.onResumeClick = () => this.resumeGame();
     this.pauseMenu.onMainMenuClick = () => this.pauseToMenu();
@@ -100,8 +156,8 @@ export class Game {
   setupMouseTracking() {
     this.#canvas.addEventListener('mousemove', (e) => {
       const rect = this.#canvas.getBoundingClientRect();
-      const scaleX = this.#canvas.width / rect.width;
-      const scaleY = this.#canvas.height / rect.height;
+      const scaleX = this.#canvas.logicalWidth / rect.width;
+      const scaleY = this.#canvas.logicalHeight / rect.height;
       this.#mousePosition = {
         x: (e.clientX - rect.left) * scaleX,
         y: (e.clientY - rect.top) * scaleY,
@@ -111,6 +167,75 @@ export class Game {
     this.#canvas.addEventListener('mouseleave', () => {
       this.#mousePosition = null;
     });
+    
+    // Explicit Mobile Touch Support
+    this.#canvas.addEventListener('touchstart', (e) => {
+      if (this.#gameState.getState() === GAME_STATES.PLAYING) e.preventDefault();
+      const rect = this.#canvas.getBoundingClientRect();
+      const scaleX = this.#canvas.logicalWidth / rect.width;
+      const scaleY = this.#canvas.logicalHeight / rect.height;
+      
+      for(let i=0; i<e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const sx = (t.clientX - rect.left) * scaleX;
+        const sy = (t.clientY - rect.top) * scaleY;
+        
+        if (this.#gameState.getState() === GAME_STATES.PLAYING && !this.#isPaused) {
+          this.#joystick.handleTouchStart(t, sx, sy);
+        } else {
+          this.#mousePosition = { x: sx, y: sy };
+          this.#lastTouchY = sy;
+        }
+      }
+    }, { passive: false });
+    
+    this.#canvas.addEventListener('touchmove', (e) => {
+      if (this.#gameState.getState() === GAME_STATES.PLAYING) e.preventDefault();
+      const rect = this.#canvas.getBoundingClientRect();
+      const scaleX = this.#canvas.logicalWidth / rect.width;
+      const scaleY = this.#canvas.logicalHeight / rect.height;
+      
+      for(let i=0; i<e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const sx = (t.clientX - rect.left) * scaleX;
+        const sy = (t.clientY - rect.top) * scaleY;
+        
+        if (this.#gameState.getState() === GAME_STATES.PLAYING && !this.#isPaused) {
+          if (t.identifier === this.#joystick.touchId || !this.#joystick.active) {
+            this.#joystick.handleTouchMove(t, sx, sy);
+          }
+        } else {
+          this.#mousePosition = { x: sx, y: sy };
+          if (this.#lastTouchY !== null) {
+            const deltaY = this.#lastTouchY - sy;
+            this.#lastTouchY = sy;
+            if (Math.abs(deltaY) > 0) {
+              const wheelEvent = new WheelEvent('wheel', { 
+                 deltaY: deltaY * 2, // arbitrary sensitivity multiplier structurally mapped cleanly
+                 clientX: t.clientX,
+                 clientY: t.clientY
+              });
+              this.#canvas.dispatchEvent(wheelEvent);
+            }
+          }
+        }
+      }
+    }, { passive: false });
+    
+    this.#canvas.addEventListener('touchend', (e) => {
+      if (this.#gameState.getState() === GAME_STATES.PLAYING) e.preventDefault();
+      for(let i=0; i<e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (this.#gameState.getState() === GAME_STATES.PLAYING && !this.#isPaused) {
+          if (t.identifier === this.#joystick.touchId) {
+            this.#joystick.handleTouchEnd(t);
+          }
+        } else {
+          this.#mousePosition = null; 
+          this.#lastTouchY = null;
+        }
+      }
+    }, { passive: false });
     
     // Add keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -125,20 +250,23 @@ export class Game {
   showMenu() {
     this.#gameState.setState(GAME_STATES.MENU);
     this.activeScreen = 'menu';
-    // Reset any canvas transforms when returning to menu
-    this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.menu.activate();
     this.characterScreen.deactivate();
     this.settingsScreen.deactivate();
     this.shopScreen.deactivate();
+    this.upgradeScreen.deactivate();
+    if(this.roundStatsScreen) this.roundStatsScreen.deactivate();
+    this.pauseMenu.deactivate();
+    this.gameOverScreen.deactivate();
     this.#canvas.style.cursor = 'pointer';
   }
   
-  showCharacterScreen() {
+  showCharacterScreen(showContinueButton = false) {
     this.#gameState.setState(GAME_STATES.MENU);
     this.activeScreen = 'character';
     this.menu.deactivate();
     this.characterScreen.activate();
+    this.characterScreen.showContinueButton = showContinueButton;
     this.settingsScreen.deactivate();
     this.shopScreen.deactivate();
   }
@@ -200,8 +328,14 @@ export class Game {
     this.settingsScreen.deactivate();
     this.#canvas.style.cursor = 'crosshair';
     
+    // Reset joystick bounds completely dropping trapped physics states dynamically
+    if (this.#joystick) this.#joystick.reset();
+    
+    // Reset weapon damage stats for this round
+    this.#weaponDamageStats.clear();
+    
     // Initialize player with upgraded stats (in game area, not full canvas)
-    this.#player = new Player(this.#canvas.width / 2, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2);
+    this.#player = new Player(this.#canvas.logicalWidth / 2, (this.#canvas.logicalHeight + GAME_CONFIG.UI_BAR_HEIGHT) / 2);
     this.#player.health = this.#gameState.playerData.stats.health;
     this.#player.maxHealth = this.#gameState.playerData.stats.health;
     this.#player.speed = this.#gameState.playerData.stats.speed;
@@ -243,11 +377,34 @@ export class Game {
     this.#projectiles = [];
     this.#pickups = [];
 
+    this.#delayedRageTimer = 3.0;
+    
+    // Spawn baseline corner trackers immediately natively
+    const w = this.#canvas.logicalWidth;
+    const h = this.#canvas.logicalHeight;
+    this.#enemies.push(new Enemy(20, h - 20, 'tracker', level));
+    this.#enemies.push(new Enemy(w - 20, h - 20, 'tracker', level));
+
     // Reset round stats
+    this.#roundStats = {
+      damageTaken: 0,
+      enemiesKilled: 0,
+      totalDamageDealt: 0,
+      moneyCollected: 0,
+      moneySpawned: 0,
+      killsByWeapon: new Map(),
+      killsByType: new Map(),
+      damageByWeapon: new Map()
+    };
+    
     this.#roundTimer = BALANCE.spawning.waveDuration;
     this.#moneyEarned = 0;
     this.#totalKills = 0;
     this.#lastCountdownSecond = Math.ceil(this.#roundTimer);
+    
+    this.#vacuumWaitTimer = 0;
+    this.#vacuumActive = false;
+    this.#vacuumDuration = 0;
 
     // Set game state
     this.#gameState.currentLevel = level;
@@ -255,7 +412,60 @@ export class Game {
   }
 
   update(deltaTime) {
-    if (this.#gameState.getState() !== GAME_STATES.PLAYING || this.#isPaused) {
+    if (this.#isPaused) return;
+
+    if (this.#gameState.getState() === GAME_STATES.ROUND_COMPLETE) {
+      this.#effectsSystem.update(deltaTime);
+      
+      if (this.#vacuumWaitTimer > 0) {
+        this.#vacuumWaitTimer -= deltaTime;
+        if (this.#vacuumWaitTimer <= 0) {
+          this.#vacuumActive = true;
+          this.#vacuumDuration = 1.5; // 1.5 seconds maximum pull animation
+        }
+      } else if (this.#vacuumActive) {
+        this.#vacuumDuration -= deltaTime;
+        for (let i = this.#pickups.length - 1; i >= 0; i--) {
+          const pickup = this.#pickups[i];
+          const dx = this.#player.position.x - pickup.position.x;
+          const dy = this.#player.position.y - pickup.position.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          
+          if (dist < 30) {
+             if (pickup.type === 'money') {
+                this.#moneyEarned += pickup.value;
+                if (this.#roundStats) this.#roundStats.moneyCollected += pickup.value;
+                this.#effectsSystem.addMoneyPickupEffect(pickup.position.x, pickup.position.y, pickup.value);
+                this.#soundSystem.play('pickup'); 
+             } else if (pickup.type === 'health' && this.#player.health < this.#player.maxHealth) {
+                this.#player.health = Math.min(this.#player.maxHealth, this.#player.health + pickup.value);
+             }
+             this.#pickups.splice(i, 1);
+          } else {
+             // Increase speed geometrically!
+             pickup.position.x += (dx / Math.max(1, dist)) * 800 * deltaTime;
+             pickup.position.y += (dy / Math.max(1, dist)) * 800 * deltaTime;
+          }
+        }
+        
+        if (this.#pickups.length === 0 || this.#vacuumDuration <= 0) {
+          this.#vacuumActive = false;
+          // Sweep any surviving explicitly
+          for (const pickup of this.#pickups) {
+            if (pickup.type === 'money' && pickup.alive) {
+              this.#moneyEarned += pickup.value;
+              if (this.#roundStats) this.#roundStats.moneyCollected += pickup.value;
+            }
+          }
+          this.#pickups = [];
+          this.#gameState.completeLevel(this.#gameState.currentLevel, this.#moneyEarned);
+          this.showRoundStatsScreen();
+        }
+      }
+      return;
+    }
+
+    if (this.#gameState.getState() !== GAME_STATES.PLAYING) {
       return;
     }
 
@@ -310,21 +520,56 @@ export class Game {
       deltaTime,
       this.#input,
       this.#mousePosition,
-      this.#canvas.width,
-      GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT,
-      GAME_CONFIG.UI_BAR_HEIGHT
+      this.#canvas.logicalWidth,
+      this.#canvas.logicalHeight,
+      GAME_CONFIG.UI_BAR_HEIGHT,
+      this.#joystick.active ? this.#joystick.vector : null,
+      this.#enemies,
+      this.#gameState.playerData.settings?.aimMode || 'auto'
     );
 
     // Update spawn system (use game area height) - pass player and projectiles for new enemy types
-    this.#spawnSystem.update(deltaTime, this.#enemies, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles);
+    this.#spawnSystem.update(deltaTime, this.#enemies, this.#canvas.logicalWidth, this.#canvas.logicalHeight, this.#player, this.#projectiles);
+
+    if (this.#delayedRageTimer > 0) {
+      this.#delayedRageTimer -= deltaTime;
+      if (this.#delayedRageTimer <= 0) {
+        const w = this.#canvas.logicalWidth;
+        const h = this.#canvas.logicalHeight;
+        const pts = [
+          {x: 20, y: GAME_CONFIG.UI_BAR_HEIGHT + 20},
+          {x: w - 20, y: GAME_CONFIG.UI_BAR_HEIGHT + 20},
+          {x: 20, y: h - 20},
+          {x: w - 20, y: h - 20}
+        ];
+        pts.forEach(p => {
+          const rage = new Enemy(p.x, p.y, 'tracker', this.#gameState.currentLevel);
+          rage.isEnraged = true;
+          rage.color = '#FFAAAA';
+          rage.health = 0.1;
+          rage.maxHealth = 0.1;
+          rage.speed *= 3.0;
+          rage.rageTextTimer = 1.5;
+          this.#enemies.push(rage);
+        });
+      }
+    }
 
     // Update weapon system (weapons handle their own sounds/effects now)
-    this.#weaponSystem.update(deltaTime, this.#player, this.#enemies, this.#projectiles);
+    this.#weaponSystem.update(
+      deltaTime, 
+      this.#player, 
+      this.#enemies, 
+      this.#projectiles, 
+      this.#weaponDamageStats,
+      this.#gameState.playerData.aimMode,
+      this.#mousePosition
+    );
 
     // Update enemies - pass player, projectiles, and enemies array for AI behaviors
     for (let i = this.#enemies.length - 1; i >= 0; i--) {
       const enemy = this.#enemies[i];
-      enemy.update(deltaTime, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#player, this.#projectiles, this.#enemies);
+      enemy.update(deltaTime, this.#canvas.logicalWidth, this.#canvas.logicalHeight, this.#player, this.#projectiles, this.#enemies);
 
       // Check collision with player
       if (enemy.checkCollision(this.#player)) {
@@ -351,6 +596,7 @@ export class Game {
           });
         } else {
           this.#player.takeDamage(enemy.damage);
+          if(this.#roundStats) this.#roundStats.damageTaken += enemy.damage;
           this.#effectsSystem.addDamageFlash();
           this.#soundSystem.play('playerHurt');
         }
@@ -367,6 +613,20 @@ export class Game {
         this.#effectsSystem.addKillEffect(enemy.position.x, enemy.position.y);
         this.#soundSystem.play('enemyDeath');
         this.#totalKills++;  // Track kills
+        
+        if (this.#roundStats) {
+          this.#roundStats.enemiesKilled++;
+          let enemyKey = enemy.type;
+          if (enemy.isEnraged) enemyKey = `RAGE ${enemy.type}`;
+          else if (enemy.isSpeed) enemyKey = `SPEED ${enemy.type}`;
+          
+          const tCount = this.#roundStats.killsByType.get(enemyKey) || 0;
+          this.#roundStats.killsByType.set(enemyKey, tCount + 1);
+          if (enemy.lastHitWeaponId) {
+            const wCount = this.#roundStats.killsByWeapon.get(enemy.lastHitWeaponId) || 0;
+            this.#roundStats.killsByWeapon.set(enemy.lastHitWeaponId, wCount + 1);
+          }
+        }
         
         // Vampiric healing
         if (this.#player.hasVampiric) {
@@ -396,9 +656,10 @@ export class Game {
         if (Math.random() < dropChance) {
           const pickup = new Pickup(enemy.position.x, enemy.position.y, 'money');
           // Apply luck bonus to value when creating the pickup so displayed value matches collected value
-          const baseValue = enemy.moneyValue * (1 + (enemy.wave - 1) * 0.1); // Scale with wave
-          pickup.value = Math.floor(baseValue * (1 + this.#gameState.playerData.stats.luck * 0.02));
+          const baseValue = (enemy.moneyValue * 0.5) * (1 + (enemy.wave - 1) * 0.1); // Scale with wave
+          pickup.value = Math.ceil(baseValue * (1 + this.#gameState.playerData.stats.luck * 0.02));
           this.#pickups.push(pickup);
+          if (this.#roundStats) this.#roundStats.moneySpawned += pickup.value;
         }
         
         // Blood pact health drops
@@ -415,7 +676,7 @@ export class Game {
     // Update projectiles
     for (let i = this.#projectiles.length - 1; i >= 0; i--) {
       const projectile = this.#projectiles[i];
-      projectile.update(deltaTime, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT, this.#enemies);
+      projectile.update(deltaTime, this.#canvas.logicalWidth, this.#canvas.logicalHeight, this.#enemies);
 
       // Check collision based on projectile owner
       if (projectile.owner === 'player') {
@@ -437,10 +698,26 @@ export class Game {
             } else {
               this.#soundSystem.play('hit');
             }
-            
+            const effectiveDamage = Math.min(enemy.health, damage);
             enemy.takeDamage(damage);
-            this.#effectsSystem.addDamageNumber(enemy.position.x, enemy.position.y - 10, damage);
+            if (projectile.weaponId) enemy.lastHitWeaponId = projectile.weaponId;
+            
+            if (effectiveDamage > 0 && this.#roundStats) {
+              this.#roundStats.totalDamageDealt += effectiveDamage;
+              if (projectile.weaponId) {
+                const wd = this.#roundStats.damageByWeapon.get(projectile.weaponId) || 0;
+                this.#roundStats.damageByWeapon.set(projectile.weaponId, wd + effectiveDamage);
+              }
+            }
+
+            this.#effectsSystem.addDamageNumber(enemy.position.x, enemy.position.y - 10, effectiveDamage);
             this.#effectsSystem.addImpactEffect(enemy.position.x, enemy.position.y);
+            
+            // Track legacy weapon damage stats exactly identically for UI pipeline
+            if (projectile.weaponId) {
+              const currentDamage = this.#weaponDamageStats.get(projectile.weaponId) || 0;
+              this.#weaponDamageStats.set(projectile.weaponId, currentDamage + effectiveDamage);
+            }
             
             // Life steal healing
             if (this.#player.hasLifeSteal) {
@@ -463,8 +740,28 @@ export class Game {
                   const distance = Math.sqrt(dx * dx + dy * dy);
                   
                   if (distance <= projectile.explosionRadius) {
+                    const effDamage = Math.min(otherEnemy.health, projectile.explosionDamage);
                     otherEnemy.takeDamage(projectile.explosionDamage);
-                    this.#effectsSystem.addDamageNumber(otherEnemy.position.x, otherEnemy.position.y - 10, projectile.explosionDamage);
+                    
+                    if (projectile.weaponId) otherEnemy.lastHitWeaponId = projectile.weaponId;
+                    
+                    if (effDamage > 0 && this.#roundStats) {
+                      this.#roundStats.totalDamageDealt += effDamage;
+                      if (projectile.weaponId) {
+                        const wd = this.#roundStats.damageByWeapon.get(projectile.weaponId) || 0;
+                        this.#roundStats.damageByWeapon.set(projectile.weaponId, wd + effDamage);
+                      }
+                    }
+
+                    // Add explosion impact effect
+                    this.#effectsSystem.addImpactEffect(otherEnemy.position.x, otherEnemy.position.y);
+                    this.#effectsSystem.addDamageNumber(otherEnemy.position.x, otherEnemy.position.y - 10, effDamage);
+                    
+                    // Track legacy explosive damage
+                    if (projectile.weaponId) {
+                      const currentDamage = this.#weaponDamageStats.get(projectile.weaponId) || 0;
+                      this.#weaponDamageStats.set(projectile.weaponId, currentDamage + effDamage);
+                    }
                   }
                 }
               }
@@ -496,6 +793,7 @@ export class Game {
             });
           } else {
             this.#player.takeDamage(projectile.damage);
+            if(this.#roundStats) this.#roundStats.damageTaken += projectile.damage;
             this.#effectsSystem.addDamageFlash();
             this.#soundSystem.play('playerHurt');
             
@@ -537,6 +835,7 @@ export class Game {
         if (pickup.type === 'money') {
           // Luck bonus already applied when creating the pickup
           this.#moneyEarned += pickup.value;
+          if (this.#roundStats) this.#roundStats.moneyCollected += pickup.value;
           this.#effectsSystem.addMoneyPickupEffect(pickup.position.x, pickup.position.y, pickup.value);
           this.#soundSystem.play('pickup');
         } else if (pickup.type === 'health') {
@@ -562,17 +861,32 @@ export class Game {
   }
 
   completeRound() {
-    this.#gameState.completeLevel(this.#gameState.currentLevel, this.#moneyEarned);
     this.#gameState.setState(GAME_STATES.ROUND_COMPLETE);
     this.#soundSystem.play('waveComplete');
-    
-    // Show upgrade screen after 2 seconds
-    setTimeout(() => this.showUpgradeScreen(), 2000);
+    this.#vacuumWaitTimer = 1.0; // 1 solid second pause visually
+    this.#vacuumActive = false;
   }
   
+  showRoundStatsScreen() {
+    this.#gameState.setState(GAME_STATES.MENU);
+    this.activeScreen = 'roundStats';
+    
+    // Clear any remaining screen shake explicitly
+    this.#effectsSystem.screenShake.duration = 0;
+    this.#effectsSystem.screenShake.intensity = 0;
+    this.#effectsSystem.screenShake.offset = { x: 0, y: 0 };
+    
+    // Update stats internally
+    this.roundStatsScreen.updateStats(this.#roundStats);
+    this.roundStatsScreen.activate();
+    this.#canvas.style.cursor = 'pointer';
+  }
+
   showUpgradeScreen() {
     this.#gameState.setState(GAME_STATES.MENU);
     this.activeScreen = 'upgrade';
+    this.shopScreen.deactivate();
+    if(this.roundStatsScreen) this.roundStatsScreen.deactivate();
     // Clear any remaining screen shake when showing upgrade screen
     this.#effectsSystem.screenShake.duration = 0;
     this.#effectsSystem.screenShake.intensity = 0;
@@ -618,6 +932,9 @@ export class Game {
           this.renderGameState();
           this.upgradeScreen.render(this.#ctx);
           break;
+        case 'roundStats':
+          this.roundStatsScreen.render(this.#ctx);
+          break;
         case 'gameOver':
           this.gameOverScreen.render(this.#ctx);
           break;
@@ -641,18 +958,18 @@ export class Game {
     
     // Clear canvas
     this.#ctx.fillStyle = COLORS.BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, this.#canvas.logicalHeight);
     
     // Draw UI bar background
     this.#ctx.fillStyle = COLORS.UI_BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     
     // Draw separator line
     this.#ctx.strokeStyle = COLORS.UI_BORDER;
     this.#ctx.lineWidth = 2;
     this.#ctx.beginPath();
     this.#ctx.moveTo(0, GAME_CONFIG.UI_BAR_HEIGHT);
-    this.#ctx.lineTo(this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.lineTo(this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     this.#ctx.stroke();
 
     // Draw grid (in game area only)
@@ -660,9 +977,12 @@ export class Game {
 
     if (state === GAME_STATES.PLAYING) {
       this.renderGame();
-    } else if (this.#gameState.getState() === GAME_STATES.ROUND_COMPLETE) {
+      if (this.#joystick && this.#joystick.active) this.#joystick.render(this.#ctx);
+    } else if (state === GAME_STATES.ROUND_COMPLETE) {
+      this.renderGame();
+      if (this.#joystick && this.#joystick.active) this.#joystick.render(this.#ctx);
       this.renderRoundComplete();
-    } else if (this.#gameState.getState() === GAME_STATES.GAME_OVER) {
+    } else if (state === GAME_STATES.GAME_OVER) {
       this.renderGameOver();
     }
     
@@ -676,18 +996,18 @@ export class Game {
     const gridSize = 50;
 
     // Draw vertical lines
-    for (let x = 0; x <= this.#canvas.width; x += gridSize) {
+    for (let x = 0; x <= this.#canvas.logicalWidth; x += gridSize) {
       this.#ctx.beginPath();
       this.#ctx.moveTo(x, GAME_CONFIG.UI_BAR_HEIGHT);
-      this.#ctx.lineTo(x, this.#canvas.height);
+      this.#ctx.lineTo(x, this.#canvas.logicalHeight);
       this.#ctx.stroke();
     }
 
     // Draw horizontal lines (starting from UI bar)
-    for (let y = GAME_CONFIG.UI_BAR_HEIGHT; y <= this.#canvas.height; y += gridSize) {
+    for (let y = GAME_CONFIG.UI_BAR_HEIGHT; y <= this.#canvas.logicalHeight; y += gridSize) {
       this.#ctx.beginPath();
       this.#ctx.moveTo(0, y);
-      this.#ctx.lineTo(this.#canvas.width, y);
+      this.#ctx.lineTo(this.#canvas.logicalWidth, y);
       this.#ctx.stroke();
     }
   }
@@ -698,12 +1018,12 @@ export class Game {
     
     // Left section - Health bar
     this.#ctx.fillStyle = COLORS.UI_TEXT;
-    this.#ctx.font = 'bold 16px monospace';
+    this.#ctx.font = 'bold 21px monospace';
     this.#ctx.textAlign = 'left';
     
     // Health bar
     const hpBarY = barY;
-    this.#ctx.font = '14px monospace';
+    this.#ctx.font = 'bold 18px monospace';
     this.#ctx.fillText('HP', 20, hpBarY + 7);
     
     const hpBarX = 45;
@@ -719,41 +1039,63 @@ export class Game {
     this.#ctx.fillRect(hpBarX, hpBarY, hpBarWidth * hpPercent, hpBarHeight);
     
     // HP text
-    this.#ctx.font = '10px monospace';
+    this.#ctx.font = 'bold 13px monospace';
     this.#ctx.fillStyle = '#FFFFFF';
     this.#ctx.textAlign = 'center';
     this.#ctx.fillText(`${Math.ceil(this.#player.health)}/${this.#player.maxHealth}`, hpBarX + hpBarWidth/2, hpBarY + 9);
     
     // Money section
-    this.#ctx.font = '14px monospace';
+    this.#ctx.font = 'bold 18px monospace';
     this.#ctx.fillStyle = COLORS.UI_TEXT;
     this.#ctx.textAlign = 'left';
     this.#ctx.fillText(`$${this.#gameState.playerData.money + this.#moneyEarned}`, 20, hpBarY + 35);
-    this.#ctx.font = '10px monospace';
+    this.#ctx.font = 'bold 13px monospace';
     this.#ctx.fillStyle = '#FFFF00';
     if (this.#moneyEarned > 0) {
       this.#ctx.fillText(`+${this.#moneyEarned}`, 100, hpBarY + 35);
     }
     
+    // Weapon damage stats - compact display
+    if (this.#weaponDamageStats.size > 0) {
+      this.#ctx.font = 'bold 12px monospace';
+      this.#ctx.fillStyle = '#FF8800';
+      this.#ctx.textAlign = 'left';
+      
+      // Get sorted weapon damage entries (top 3)
+      const weaponDamages = Array.from(this.#weaponDamageStats.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3);
+      
+      let damageText = 'DMG: ';
+      for (const [weaponId, damage] of weaponDamages) {
+        // Get weapon name from balance config
+        const weaponName = BALANCE.weapons[weaponId]?.name || weaponId;
+        const shortName = weaponName.split(' ')[0].substring(0, 4).toUpperCase();
+        damageText += `${shortName}:${damage.toFixed(0)} `;
+      }
+      
+      this.#ctx.fillText(damageText.trim(), 20, hpBarY + 50);
+    }
+    
     // Center section - Stage and Timer
     this.#ctx.fillStyle = COLORS.UI_TEXT;
-    this.#ctx.font = 'bold 20px monospace';
+    this.#ctx.font = 'bold 26px monospace';
     this.#ctx.textAlign = 'center';
-    this.#ctx.fillText(`STAGE ${this.#gameState.currentLevel}`, this.#canvas.width / 2, barY + 5);
+    this.#ctx.fillText(`STAGE ${this.#gameState.currentLevel}`, this.#canvas.logicalWidth / 2, barY + 5);
     
     const timeRemaining = Math.ceil(this.#roundTimer);
-    this.#ctx.font = 'bold 32px monospace';
+    this.#ctx.font = 'bold 42px monospace';
     this.#ctx.fillStyle = timeRemaining <= 10 ? '#FF0000' : COLORS.UI_TEXT;
-    this.#ctx.fillText(`${timeRemaining}`, this.#canvas.width / 2, barY + 40);
-    this.#ctx.font = '12px monospace';
-    this.#ctx.fillText('seconds', this.#canvas.width / 2, barY + 55);
+    this.#ctx.fillText(`${timeRemaining}`, this.#canvas.logicalWidth / 2, barY + 40);
+    this.#ctx.font = 'bold 16px monospace';
+
     
     // Right section - Stats
     this.#ctx.textAlign = 'right';
-    this.#ctx.font = '12px monospace';
+    this.#ctx.font = 'bold 16px monospace';
     this.#ctx.fillStyle = COLORS.UI_TEXT;
     
-    const rightX = this.#canvas.width - 20;
+    const rightX = this.#canvas.logicalWidth - 20;
     this.#ctx.fillText(`Enemies: ${this.#enemies.length}`, rightX, barY);
     
     // Weapons and items count
@@ -762,7 +1104,7 @@ export class Game {
     this.#ctx.fillText(`Weapons: ${weaponCount} | Items: ${itemCount}`, rightX, barY + 20);
     
     // Comprehensive stats display - compact format
-    this.#ctx.font = '9px monospace';
+    this.#ctx.font = 'bold 12px monospace';
     this.#ctx.fillStyle = '#00FF00';
     const stats = this.#gameState.playerData.stats;
     
@@ -786,50 +1128,65 @@ export class Game {
 
   renderRoundComplete() {
     this.#ctx.fillStyle = COLORS.UI_TEXT;
-    this.#ctx.font = '32px monospace';
+    this.#ctx.font = 'bold 42px monospace';
     this.#ctx.textAlign = 'center';
-    const centerY = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2;
-    this.#ctx.fillText('ROUND COMPLETE!', this.#canvas.width / 2, centerY - 40);
+    const centerY = (this.#canvas.logicalHeight + GAME_CONFIG.UI_BAR_HEIGHT) / 2;
+    this.#ctx.fillText('ROUND COMPLETE!', this.#canvas.logicalWidth / 2, centerY - 40);
 
-    this.#ctx.font = '20px monospace';
+    this.#ctx.font = 'bold 26px monospace';
     this.#ctx.fillText(
       `Money Earned: $${this.#moneyEarned}`,
-      this.#canvas.width / 2,
+      this.#canvas.logicalWidth / 2,
       centerY + 10
     );
   }
 
   renderGameOver() {
     this.#ctx.fillStyle = '#FF0000';
-    this.#ctx.font = '48px monospace';
+    this.#ctx.font = 'bold 62px monospace';
     this.#ctx.textAlign = 'center';
-    const centerY = GAME_CONFIG.UI_BAR_HEIGHT + GAME_CONFIG.GAME_AREA_HEIGHT / 2;
-    this.#ctx.fillText('GAME OVER', this.#canvas.width / 2, centerY);
+    const centerY = (this.#canvas.logicalHeight + GAME_CONFIG.UI_BAR_HEIGHT) / 2;
+    this.#ctx.fillText('GAME OVER', this.#canvas.logicalWidth / 2, centerY);
 
     this.#ctx.fillStyle = COLORS.UI_TEXT;
-    this.#ctx.font = '20px monospace';
-    this.#ctx.fillText('Restarting...', this.#canvas.width / 2, centerY + 40);
+    this.#ctx.font = 'bold 26px monospace';
+    this.#ctx.fillText('Restarting...', this.#canvas.logicalWidth / 2, centerY + 40);
   }
   
   renderGame() {
     // Clear canvas
     this.#ctx.fillStyle = COLORS.BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, this.#canvas.logicalHeight);
     
     // Draw UI bar background
     this.#ctx.fillStyle = COLORS.UI_BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     
     // Draw separator line
     this.#ctx.strokeStyle = COLORS.UI_BORDER;
     this.#ctx.lineWidth = 2;
     this.#ctx.beginPath();
     this.#ctx.moveTo(0, GAME_CONFIG.UI_BAR_HEIGHT);
-    this.#ctx.lineTo(this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.lineTo(this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     this.#ctx.stroke();
 
     // Draw grid (in game area only)
     this.drawGrid();
+
+    // Render Tutorial Text on Level 1 natively
+    if (this.#gameState.currentLevel === 1 && this.#roundTimer > 55) {
+      if (Math.floor(this.#roundTimer * 2) % 2 === 0) { // Blink on half seconds
+        const isMobile = document.body.clientHeight > document.body.clientWidth;
+        const msg = isMobile ? "USE VIRTUAL JOYSTICK TO MOVE" : "USE W A S D TO MOVE";
+        this.#ctx.save();
+        this.#ctx.fillStyle = COLORS.UI_TEXT;
+        this.#ctx.font = 'bold 36px monospace';
+        this.#ctx.textAlign = 'center';
+        this.#ctx.globalAlpha = 0.8;
+        this.#ctx.fillText(msg, this.#canvas.logicalWidth / 2, this.#canvas.logicalHeight / 2 + 150);
+        this.#ctx.restore();
+      }
+    }
 
     // Render pickups (below other entities)
     for (const pickup of this.#pickups) {
@@ -849,8 +1206,9 @@ export class Game {
     // Render player
     if (this.#player) {
       this.#player.render(this.#ctx);
+      this.#weaponSystem.render(this.#ctx, this.#player);
     }
-
+    
     // Render effects
     this.#effectsSystem.renderParticles(this.#ctx);
     this.#effectsSystem.renderFloatingTexts(this.#ctx);
@@ -867,18 +1225,18 @@ export class Game {
   renderGameState() {
     // Render the basic game state (used as background for upgrade screen)
     this.#ctx.fillStyle = COLORS.BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, this.#canvas.logicalHeight);
     
     // Draw UI bar
     this.#ctx.fillStyle = COLORS.UI_BACKGROUND;
-    this.#ctx.fillRect(0, 0, this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.fillRect(0, 0, this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     
     // Draw separator
     this.#ctx.strokeStyle = COLORS.UI_BORDER;
     this.#ctx.lineWidth = 2;
     this.#ctx.beginPath();
     this.#ctx.moveTo(0, GAME_CONFIG.UI_BAR_HEIGHT);
-    this.#ctx.lineTo(this.#canvas.width, GAME_CONFIG.UI_BAR_HEIGHT);
+    this.#ctx.lineTo(this.#canvas.logicalWidth, GAME_CONFIG.UI_BAR_HEIGHT);
     this.#ctx.stroke();
     
     // Draw grid

@@ -219,12 +219,12 @@ export class Projectile extends Entity {
     // Handle wave motion before normal movement
     if (this.waveMotion) {
       this.distanceTraveled += this.speed * deltaTime;
-      const waveOffset = Math.sin(this.distanceTraveled * 0.01 + this.wavePhase) * this.waveAmplitude;
+      const waveOffset = Math.sin(this.distanceTraveled * 0.07 + this.wavePhase) * this.waveAmplitude;  // 7x frequency - extremely aggressive waves
       
       // Apply perpendicular offset to create wave pattern
       const perpAngle = this.initialAngle + Math.PI / 2;
-      this.velocity.x = Math.cos(this.initialAngle) * this.speed + Math.cos(perpAngle) * waveOffset * 0.01;
-      this.velocity.y = Math.sin(this.initialAngle) * this.speed + Math.sin(perpAngle) * waveOffset * 0.01;
+      this.velocity.x = Math.cos(this.initialAngle) * this.speed + Math.cos(perpAngle) * waveOffset * 2.0;  // Strong wave effect
+      this.velocity.y = Math.sin(this.initialAngle) * this.speed + Math.sin(perpAngle) * waveOffset * 2.0;  // Strong wave effect
     }
     
     super.update(deltaTime);
@@ -243,12 +243,20 @@ export class Projectile extends Entity {
         this.velocity.x = -this.velocity.x;
         this.position.x = Math.max(halfSize, Math.min(canvasWidth - halfSize, this.position.x));
         this.bounces++;
+        // Update initial angle for wave motion after bounce
+        if (this.waveMotion) {
+          this.initialAngle = Math.atan2(this.velocity.y, this.velocity.x);
+        }
       }
       
       if (this.position.y - halfSize <= 0 || this.position.y + halfSize >= canvasHeight) {
         this.velocity.y = -this.velocity.y;
         this.position.y = Math.max(halfSize, Math.min(canvasHeight - halfSize, this.position.y));
         this.bounces++;
+        // Update initial angle for wave motion after bounce
+        if (this.waveMotion) {
+          this.initialAngle = Math.atan2(this.velocity.y, this.velocity.x);
+        }
       }
     } else {
       // Remove if out of bounds (no bouncing)

@@ -18,11 +18,23 @@ export class WeaponSystem {
     this.weapons = this.weapons.filter(w => w.id !== weaponId);
   }
 
-  update(deltaTime, player, enemies, projectiles) {
-    // All weapons fire independently based on their own cooldowns
+  update(deltaTime, player, enemies, projectiles, weaponDamageStats, aimMode, mousePosition) {
+    for (let i = 0; i < this.weapons.length; i++) {
+      const weapon = this.weapons[i];
+      weapon.positionIndex = i;
+      weapon.totalWeapons = this.weapons.length;
+      
+      if (enemies.length >= 0) {
+        weapon.weaponDamageStats = weaponDamageStats;
+        weapon.update(deltaTime, player, enemies, projectiles, aimMode, mousePosition);
+      }
+    }
+  }
+
+  render(ctx, player) {
     for (const weapon of this.weapons) {
-      if (enemies.length > 0) {
-        weapon.update(deltaTime, player, enemies, projectiles);
+      if (weapon.render) {
+        weapon.render(ctx, player);
       }
     }
   }
@@ -97,6 +109,9 @@ export class Weapon {
     if (id === 'boomerang') {
       this.boomerangDistance = (config.boomerangDistance || 200) + (upgrades.boomerangDistance || 0) * (level - 1);
     }
+    if (id === 'waveGun') {
+      this.waveAmplitude = 100 + (upgrades.waveAmplitude || 0) * (level - 1);  // Base 100px amplitude
+    }
     if (id === 'gravityWell') {
       this.wellDuration = (config.wellDuration || 4) + (upgrades.wellDuration || 0) * (level - 1);
       this.wellRadius = (config.wellRadius || 120) + (upgrades.wellRadius || 0) * (level - 1);
@@ -113,29 +128,196 @@ export class Weapon {
   }
 
   getDamage(playerStats) {
-    return Math.max(1, Math.floor(playerStats.damage * this.damageMultiplier));
+    return playerStats.damage * this.damageMultiplier;
   }
 
-  update(deltaTime, player, enemies, projectiles) {
+  updateLocation(player) {
+    // Distribute circularly based on index
+    const angleIndex = (Math.PI * 2 / (this.totalWeapons || 1)) * (this.positionIndex || 0);
+    const hoverRadius = player.size / 2 + 15; // Hover slightly outside player
+    this.position = {
+      x: player.position.x + Math.cos(angleIndex) * hoverRadius,
+      y: player.position.y + Math.sin(angleIndex) * hoverRadius
+    };
+  }
+
+  updateAim(player, enemies, aimMode, mousePosition) {
+    // Calculate targeted aim angle for THIS specific weapon
+    if (aimMode === 'manual' && mousePosition) {
+      const dx = mousePosition.x - this.position.x;
+      const dy = mousePosition.y - this.position.y;
+      this.aimAngle = Math.atan2(dy, dx);
+    } else if (enemies && enemies.length > 0) {
+      // Find closest enemy
+      let closestEnemy = null;
+      let minDistanceSq = Infinity;
+      
+      for (const enemy of enemies) {
+        if (!enemy.alive) continue;
+        const dx = enemy.position.x - this.position.x;
+        const dy = enemy.position.y - this.position.y;
+        const distSq = dx * dx + dy * dy;
+        
+        if (distSq < minDistanceSq) {
+          minDistanceSq = distSq;
+          closestEnemy = enemy;
+        }
+      }
+      
+      if (closestEnemy) {
+        // Predictive lead tracking based on projectile speed
+        const distance = Math.sqrt(minDistanceSq);
+        const pSpeed = BALANCE.projectile.baseSpeed || 400;
+        const timeToHit = distance / pSpeed;
+        
+        const predX = closestEnemy.position.x + (closestEnemy.velocity?.x || 0) * timeToHit;
+        const predY = closestEnemy.position.y + (closestEnemy.velocity?.y || 0) * timeToHit;
+        
+        this.aimAngle = Math.atan2(predY - this.position.y, predX - this.position.x);
+      } else {
+        this.aimAngle = player.aimAngle;
+      }
+    } else {
+      this.aimAngle = player.aimAngle;
+    }
+  }
+
+  update(deltaTime, player, enemies, projectiles, aimMode = 'auto', mousePosition = null) {
+    this.updateLocation(player);
+    this.updateAim(player, enemies, aimMode, mousePosition);
     this.cooldown -= deltaTime;
-    
+
     const fireRate = this.getFireRate(player.stats || { fireRate: 1 });
     
     if (this.cooldown <= 0 && enemies.length > 0) {
+      // Temporarily override player properties so subclasses seamlessly shoot from weapon's offset
+      const origX = player.position.x;
+      const origY = player.position.y;
+      const origAim = player.aimAngle;
+      
+      player.position.x = this.position.x;
+      player.position.y = this.position.y;
+      player.aimAngle = this.aimAngle;
+      
       this.fire(player, enemies, projectiles);
       
       // Double tap chance
       if (player.hasDoubleTap && Math.random() < BALANCE.items.doubleTap.doubleShotChance) {
-        // Fire again immediately
         setTimeout(() => {
           if (enemies.length > 0) {
+            // Must re-override in timeout context!
+            const tX = player.position.x;
+            const tY = player.position.y;
+            const tAim = player.aimAngle;
+            
+            player.position.x = this.position.x;
+            player.position.y = this.position.y;
+            player.aimAngle = this.aimAngle;
+            
             this.fire(player, enemies, projectiles);
+            
+            player.position.x = tX;
+            player.position.y = tY;
+            player.aimAngle = tAim;
           }
-        }, 50); // Small delay for visual effect
+        }, 50);
       }
       
-      this.cooldown = 1 / fireRate;
+      // Restore player properties
+      player.position.x = origX;
+      player.position.y = origY;
+      player.aimAngle = origAim;
+      
+      this.cooldown = (1 / fireRate) + Math.random() * 0.08;
     }
+  }
+
+  render(ctx) {
+    if (!this.position) return;
+    ctx.save();
+    ctx.translate(this.position.x, this.position.y);
+    ctx.rotate(this.aimAngle);
+    
+    // Draw based on weapon ID
+    switch (this.id) {
+      case 'pistol':
+        ctx.fillStyle = '#AAAAAA'; ctx.fillRect(-6, -3, 12, 6);
+        ctx.fillStyle = '#555555'; ctx.fillRect(6, -1.5, 6, 3);
+        break;
+      case 'shotgun':
+        ctx.fillStyle = '#663300'; ctx.fillRect(-5, -5, 10, 10);
+        ctx.fillStyle = '#333333'; ctx.fillRect(5, -4, 5, 3); ctx.fillRect(5, 1, 5, 3);
+        break;
+      case 'smg':
+        ctx.fillStyle = '#444444'; ctx.fillRect(-7, -2, 14, 4);
+        ctx.fillStyle = '#222222'; ctx.fillRect(7, -1, 4, 2);
+        ctx.fillRect(-2, 2, 4, 4); // magazine
+        break;
+      case 'rocketLauncher':
+        ctx.fillStyle = '#005500'; ctx.fillRect(-8, -4, 16, 8);
+        ctx.fillStyle = '#FF0000'; ctx.fillRect(8, -3, 4, 6);
+        ctx.fillStyle = '#333333'; ctx.fillRect(-10, -5, 4, 10);
+        break;
+      case 'laserBeam':
+        ctx.fillStyle = '#0000FF'; ctx.fillRect(-9, -2, 18, 4);
+        ctx.fillStyle = '#00FFFF'; ctx.fillRect(9, -1, 6, 2);
+        break;
+      case 'ricochet':
+        ctx.fillStyle = '#880088'; 
+        ctx.beginPath(); ctx.arc(-2, 0, 5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#FF00FF'; ctx.fillRect(3, -2, 6, 4);
+        break;
+      case 'waveGun':
+        ctx.fillStyle = '#008888'; ctx.fillRect(-6, -4, 10, 8);
+        ctx.fillStyle = '#00FFFF'; 
+        ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(10, 0); ctx.lineTo(4, 5); ctx.fill();
+        break;
+      case 'burstRifle':
+        ctx.fillStyle = '#8888AA'; ctx.fillRect(-8, -3, 14, 6);
+        ctx.fillStyle = '#333333'; ctx.fillRect(6, -1, 6, 2);
+        ctx.fillStyle = '#444466'; ctx.fillRect(-4, 3, 3, 4);
+        break;
+      case 'orbitalCannon':
+        ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = '#FFFF00'; ctx.fillRect(6, -1, 3, 2);
+        break;
+      case 'novaBurst':
+        ctx.fillStyle = '#FFA500';
+        ctx.translate(2, 0);
+        for(let i=0; i<4; i++) {
+           ctx.rotate(Math.PI/4);
+           ctx.fillRect(-6, -1.5, 12, 3);
+        }
+        break;
+      case 'chainLightning':
+        ctx.fillStyle = '#FFFF00';
+        ctx.beginPath();
+        ctx.moveTo(-6, -4); ctx.lineTo(2, -4); ctx.lineTo(-2, 0);
+        ctx.lineTo(6, 0); ctx.lineTo(0, 5); ctx.lineTo(2, 1);
+        ctx.lineTo(-4, 1); ctx.fill();
+        break;
+      case 'boomerang':
+        ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-5, -6); ctx.quadraticCurveTo(5, 0, -5, 6);
+        ctx.stroke();
+        break;
+      case 'sprayAndPray':
+        // Machine gun style: long barrel, stock, ammo belt
+        ctx.fillStyle = '#333333'; ctx.fillRect(-10, -3, 20, 6); // Main body
+        ctx.fillStyle = '#555555'; ctx.fillRect(10, -2, 8, 4); // Long barrel
+        ctx.fillStyle = '#222222'; ctx.fillRect(14, -1, 4, 2); // Muzzle
+        ctx.fillStyle = '#444444'; ctx.fillRect(-12, -4, 4, 8); // Stock
+        ctx.fillStyle = '#666600'; ctx.fillRect(-2, 3, 6, 5); // Ammo box
+        ctx.fillStyle = '#888800'; ctx.fillRect(0, 3, 2, 3); // Belt feed
+        break;
+      default:
+        ctx.fillStyle = '#AAAAAA'; ctx.fillRect(-6, -3, 12, 6);
+        ctx.fillStyle = '#555555'; ctx.fillRect(6, -1.5, 6, 3);
+    }
+    
+    ctx.restore();
   }
 
   fire(player, enemies, projectiles) {
@@ -177,6 +359,7 @@ export class Pistol extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     
     // Apply weapon upgrade bonuses
     if (this.autoAimBonus) {
@@ -216,23 +399,58 @@ export class Shotgun extends Weapon {
   fire(player, enemies, projectiles) {
     const damage = this.getDamage(player.stats || { damage: BALANCE.player.baseDamage });
     
+    // Find the highest cluster of enemies
+    let bestAngle = player.aimAngle;
+    let maxClusterCount = 0;
+    
+    // Auto-aim shotgun cluster
+    if (enemies.length > 0) {
+      for (const enemy of enemies) {
+        if (!enemy.alive) continue;
+        const testDx = enemy.position.x - player.position.x;
+        const testDy = enemy.position.y - player.position.y;
+        const testAngle = Math.atan2(testDy, testDx);
+        
+        let localCount = 0;
+        for (const other of enemies) {
+           if (!other.alive) continue;
+           const dx = other.position.x - player.position.x;
+           const dy = other.position.y - player.position.y;
+           const angle = Math.atan2(dy, dx);
+           
+           let diff = angle - testAngle;
+           while (diff > Math.PI) diff -= Math.PI * 2;
+           while (diff < -Math.PI) diff += Math.PI * 2;
+           
+           if (Math.abs(diff) <= this.spread / 2) {
+             localCount++;
+           }
+        }
+        
+        if (localCount > maxClusterCount) {
+          maxClusterCount = localCount;
+          bestAngle = testAngle;
+        }
+      }
+    }
+    
     // Multiple projectiles in a cone
     for (let i = 0; i < this.projectileCount; i++) {
       const angleOffset = (i - (this.projectileCount - 1) / 2) * this.spread / (this.projectileCount - 1);
       const projectile = new Projectile(
         player.position.x,
         player.position.y,
-        player.aimAngle + angleOffset,
+        bestAngle + angleOffset,
         'player'
       );
       projectile.damage = damage;
-      projectile.piercing = true;  // Shotgun projectiles pierce through enemies
-      projectile.speed = BALANCE.projectile.baseSpeed * (0.8 + Math.random() * 0.4); // Variable speed
+      projectile.weaponId = this.id;
+      projectile.piercing = true;
+      projectile.speed = BALANCE.projectile.baseSpeed * (0.8 + Math.random() * 0.4);
       
-      // Apply item effects
       if (player.hasBounceHouse) {
         const bounces = BALANCE.items.bounceHouse.bouncesPerStack * (player.bounceHouseStacks || 1);
-        projectile.maxBounces = Math.floor(bounces / 2); // Shotgun gets half bounces
+        projectile.maxBounces = Math.floor(bounces / 2);
       }
       if (player.hasExplosiveRounds) {
         projectile.explosive = true;
@@ -275,6 +493,7 @@ export class SMG extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.size = 3; // Smaller bullets
     
     // Apply piercing from weapon upgrade (level 3+)
@@ -357,6 +576,7 @@ export class RocketLauncher extends Weapon {
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.size = 10; // Bigger projectile
       projectile.speed = BALANCE.projectile.baseSpeed * 0.7; // Slower
       projectile.color = '#FF4500'; // Orange rocket
@@ -382,7 +602,7 @@ export class RocketLauncher extends Weapon {
       this.effectsSystem.addMuzzleFlash(
         player.position.x,
         player.position.y,
-        targetAngle,
+        player.aimAngle,
         '#FF4500'
       );
     }
@@ -411,6 +631,7 @@ export class LaserBeam extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.speed = BALANCE.projectile.baseSpeed * 3; // Very fast
     projectile.size = 2;
     projectile.color = '#00FFFF'; // Cyan beam
@@ -441,7 +662,8 @@ export class RicochetGun extends Weapon {
       'player'
     );
     projectile.damage = damage;
-    projectile.maxBounces = 7;
+    projectile.weaponId = this.id;  // Track which weapon fired this
+    projectile.maxBounces = BALANCE.weapons.ricochet.maxBounces;
     projectile.color = '#FF00FF'; // Magenta
     projectile.smartBounce = true; // Custom property for seeking behavior
     
@@ -463,20 +685,38 @@ export class WaveGun extends Weapon {
   fire(player, enemies, projectiles) {
     const damage = this.getDamage(player.stats || { damage: BALANCE.player.baseDamage });
     
-    for (let i = 0; i < 3; i++) {
+    const spreadAngle = Math.PI / 8;  // 22.5 degree total spread (narrower than shotgun's 45)
+    
+    for (let i = 0; i < this.projectileCount; i++) {
+      // Calculate angle offset for each projectile to create arc
+      const angleOffset = (i - (this.projectileCount - 1) / 2) * (spreadAngle / (this.projectileCount - 1));
+      
       const projectile = new Projectile(
         player.position.x,
         player.position.y,
-        player.aimAngle,
+        player.aimAngle + angleOffset,
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.piercing = true;
       projectile.waveMotion = true; // Custom sine wave motion
-      projectile.wavePhase = i * (Math.PI * 2 / 3); // Different phase for each
-      projectile.waveAmplitude = 30;
+      projectile.wavePhase = i * (Math.PI * 2 / this.projectileCount); // Different phase for each
+      projectile.waveAmplitude = this.waveAmplitude || 100;  // Maximum wave amplitude
+      projectile.initialAngle = player.aimAngle + angleOffset;  // Update initial angle for wave calculation
       projectile.color = '#00FF00';
-      projectile.size = 6;
+      projectile.size = 12;  // 2x size for easier hits
+      
+      // Apply item effects
+      if (player.hasBounceHouse) {
+        const bounces = BALANCE.items.bounceHouse.bouncesPerStack * (player.bounceHouseStacks || 1);
+        projectile.maxBounces = bounces;
+      }
+      if (player.hasExplosiveRounds) {
+        projectile.explosive = true;
+        projectile.explosionRadius = BALANCE.items.explosiveRounds.aoeRadius;
+        projectile.explosionDamage = damage * BALANCE.items.explosiveRounds.aoeDamagePercent;
+      }
       
       projectiles.push(projectile);
     }
@@ -495,7 +735,9 @@ export class BurstRifle extends Weapon {
     this.burstTimer = 0;
   }
 
-  update(deltaTime, player, enemies, projectiles) {
+  update(deltaTime, player, enemies, projectiles, aimMode = 'auto', mousePosition = null) {
+    this.updateLocation(player);
+    this.updateAim(player, enemies, aimMode, mousePosition);
     this.cooldown -= deltaTime;
     this.burstTimer -= deltaTime;
     
@@ -505,12 +747,25 @@ export class BurstRifle extends Weapon {
     if (this.cooldown <= 0 && enemies.length > 0) {
       this.burstCount = 3;
       this.burstTimer = 0;
-      this.cooldown = 1 / fireRate;
+      this.cooldown = (1 / fireRate) + Math.random() * 0.08;
     }
-    
+
     // Fire burst shots
     if (this.burstCount > 0 && this.burstTimer <= 0) {
+      const origX = player.position.x;
+      const origY = player.position.y;
+      const origAim = player.aimAngle;
+      
+      player.position.x = this.position.x;
+      player.position.y = this.position.y;
+      player.aimAngle = this.aimAngle;
+      
       this.fireBurst(player, enemies, projectiles);
+      
+      player.position.x = origX;
+      player.position.y = origY;
+      player.aimAngle = origAim;
+      
       this.burstCount--;
       this.burstTimer = 0.08; // Delay between burst shots
     }
@@ -527,6 +782,7 @@ export class BurstRifle extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.speed = BALANCE.projectile.baseSpeed * 1.5; // Fast bullets
     projectile.color = '#FFFF00';
     
@@ -561,6 +817,7 @@ export class OrbitalCannon extends Weapon {
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.speed = BALANCE.projectile.baseSpeed * 0.6; // Slower expansion
       projectile.size = 8;
       projectile.color = '#FF1493'; // Deep pink
@@ -613,6 +870,7 @@ export class NovaBurst extends Weapon {
         'player'
       );
       projectile.damage = damage;
+      projectile.weaponId = this.id;  // Track which weapon fired this
       projectile.speed = BALANCE.projectile.baseSpeed * 0.8; // Moderate speed
       projectile.size = 5;
       projectile.color = '#00FFFF'; // Cyan
@@ -693,6 +951,11 @@ export class ChainLightning extends Weapon {
     if (this.effectsSystem) {
       this.effectsSystem.addDamageNumber(closestEnemy.position.x, closestEnemy.position.y - 10, damage);
     }
+    // Track chain lightning damage
+    if (this.weaponDamageStats) {
+      const currentDamage = this.weaponDamageStats.get(this.id) || 0;
+      this.weaponDamageStats.set(this.id, currentDamage + damage);
+    }
     const hitEnemies = new Set([closestEnemy]);
     
     // Create lightning chain
@@ -729,6 +992,11 @@ export class ChainLightning extends Weapon {
       nextEnemy.takeDamage(currentDamage);
       if (this.effectsSystem) {
         this.effectsSystem.addDamageNumber(nextEnemy.position.x, nextEnemy.position.y - 10, currentDamage);
+      }
+      // Track chain damage
+      if (this.weaponDamageStats) {
+        const totalDamage = this.weaponDamageStats.get(this.id) || 0;
+        this.weaponDamageStats.set(this.id, totalDamage + currentDamage);
       }
       hitEnemies.add(nextEnemy);
       chainPath.push({ x: nextEnemy.position.x, y: nextEnemy.position.y });
@@ -769,6 +1037,7 @@ export class BoomerangLauncher extends Weapon {
       'player'
     );
     projectile.damage = damage;
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.size = 8;
     projectile.color = '#00FF88'; // Green boomerang
     projectile.boomerang = true;
@@ -802,6 +1071,7 @@ export class GravityWell extends Weapon {
       'player'
     );
     projectile.damage = 0; // No direct damage on hit
+    projectile.weaponId = this.id;  // Track which weapon fired this
     projectile.size = 15;
     projectile.color = '#AA00AA'; // Purple gravity well
     projectile.speed = BALANCE.projectile.baseSpeed * 0.5; // Slower
@@ -818,6 +1088,280 @@ export class GravityWell extends Weapon {
     
     if (this.soundSystem) {
       this.soundSystem.play('shootGravity');
+    }
+  }
+}
+
+// Sword - Melee arc attack
+export class Sword extends Weapon {
+  constructor(level = 1) {
+    super('sword', BALANCE.weapons.sword, level);
+    this.swingArc = BALANCE.weapons.sword.swingArc + (level - 1) * (Math.PI / 12);
+    this.swingRange = BALANCE.weapons.sword.swingRange + (level - 1) * 10;
+    this.swingTimer = 0;
+    this.windUpTimer = 0;
+    this.swingAngle = 0;
+    this.isSwinging = false;
+    this.isWindingUp = false;
+    this.swingDirection = 0;
+    this.hitEnemiesThisSwing = new Set();
+  }
+
+  update(deltaTime, player, enemies, projectiles, aimMode, mousePosition) {
+    this.updateLocation(player);
+    this.updateAim(player, enemies, aimMode, mousePosition);
+    this.cooldown -= deltaTime;
+
+    if (this.isWindingUp) {
+      this.windUpTimer -= deltaTime;
+      if (this.windUpTimer <= 0) {
+        this.isWindingUp = false;
+        this.isSwinging = true;
+        this.swingTimer = BALANCE.weapons.sword.swingDuration;
+        this.hitEnemiesThisSwing.clear();
+      }
+      return;
+    }
+
+    if (this.isSwinging) {
+      this.swingTimer -= deltaTime;
+      const swingDuration = BALANCE.weapons.sword.swingDuration;
+      const progress = 1 - (this.swingTimer / swingDuration);
+      this.swingAngle = this.swingDirection - this.swingArc / 2 + this.swingArc * progress;
+
+      const damage = this.getDamage(player.stats || { damage: BALANCE.player.baseDamage });
+      for (const enemy of enemies) {
+        if (!enemy.alive || this.hitEnemiesThisSwing.has(enemy)) continue;
+
+        const dx = enemy.position.x - this.position.x;
+        const dy = enemy.position.y - this.position.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > this.swingRange + enemy.size / 2) continue;
+
+        const enemyAngle = Math.atan2(dy, dx);
+        let angleDiff = enemyAngle - this.swingAngle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+        if (Math.abs(angleDiff) < this.swingArc / 4) {
+          let finalDamage = damage;
+          const critRoll = Math.random() * 100;
+          const stats = player.stats || {};
+          if (critRoll < (stats.critChance || 0)) {
+            finalDamage *= (stats.critDamage || 150) / 100;
+          }
+
+          const effectiveDamage = Math.min(enemy.health, finalDamage);
+          enemy.takeDamage(finalDamage);
+          enemy.lastHitWeaponId = this.id;
+          this.hitEnemiesThisSwing.add(enemy);
+
+          if (this.weaponDamageStats) {
+            const current = this.weaponDamageStats.get(this.id) || 0;
+            this.weaponDamageStats.set(this.id, current + effectiveDamage);
+          }
+
+          if (this.effectsSystem) {
+            this.effectsSystem.addDamageNumber(enemy.position.x, enemy.position.y - 10, effectiveDamage);
+            this.effectsSystem.addImpactEffect(enemy.position.x, enemy.position.y);
+          }
+          if (this.soundSystem) {
+            this.soundSystem.play('hit');
+          }
+
+          if (player.hasLifeSteal) {
+            const healAmount = finalDamage * BALANCE.items.lifeSteal.lifeStealPercent;
+            if (healAmount > 0.5) {
+              player.health = Math.min(player.maxHealth, player.health + healAmount);
+            }
+          }
+        }
+      }
+
+      if (this.swingTimer <= 0) {
+        this.isSwinging = false;
+      }
+    } else if (this.cooldown <= 0 && enemies.length > 0) {
+      // Start wind-up
+      const fireRate = this.getFireRate(player.stats || { fireRate: 1 });
+      this.isWindingUp = true;
+      this.windUpTimer = BALANCE.weapons.sword.windUpDuration;
+      this.swingDirection = this.aimAngle;
+      this.cooldown = (1 / fireRate) + Math.random() * 0.08;
+
+      if (this.soundSystem) {
+        this.soundSystem.play('shoot');
+      }
+    }
+  }
+
+  renderBlade(ctx) {
+    // Fixed-size sword: handle + crossguard + blade + tip
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(-2, -3, 8, 6);  // Handle (brown)
+    ctx.fillStyle = '#FFDD00';
+    ctx.fillRect(5, -5, 4, 10);  // Crossguard (gold)
+    ctx.fillStyle = '#CCCCCC';
+    ctx.fillRect(9, -2.5, 22, 5);  // Blade (silver)
+    ctx.fillStyle = '#EEEEEE';
+    ctx.beginPath();  // Pointed tip
+    ctx.moveTo(31, -2.5);
+    ctx.lineTo(37, 0);
+    ctx.lineTo(31, 2.5);
+    ctx.fill();
+  }
+
+  render(ctx) {
+    if (!this.position) return;
+    ctx.save();
+    ctx.translate(this.position.x, this.position.y);
+
+    if (this.isWindingUp) {
+      const progress = 1 - (this.windUpTimer / BALANCE.weapons.sword.windUpDuration);
+
+      // Show the swing range arc that's about to be hit
+      ctx.globalAlpha = 0.08 + progress * 0.15;
+      ctx.fillStyle = '#FFDD00';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, this.swingRange, this.swingDirection - this.swingArc / 2, this.swingDirection + this.swingArc / 2);
+      ctx.closePath();
+      ctx.fill();
+      // Range arc outline
+      ctx.strokeStyle = '#FFDD00';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3 + progress * 0.4;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.swingRange, this.swingDirection - this.swingArc / 2, this.swingDirection + this.swingArc / 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+
+      // Pull back behind swing direction
+      const pullBackAngle = this.swingDirection - this.swingArc / 2 - (Math.PI / 3) * (0.5 + progress * 0.5);
+      const shake = progress * 2.5;
+      const shakeOffset = Math.sin(performance.now() * 0.05) * shake;
+
+      ctx.rotate(pullBackAngle + shakeOffset * 0.05);
+
+      ctx.shadowColor = '#FFDD00';
+      ctx.shadowBlur = 4 + progress * 12;
+      this.renderBlade(ctx);
+      ctx.shadowBlur = 0;
+    } else if (this.isSwinging) {
+      // Show full range arc (fading)
+      const swingProgress = 1 - (this.swingTimer / BALANCE.weapons.sword.swingDuration);
+      ctx.globalAlpha = 0.12 * (1 - swingProgress);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, this.swingRange, this.swingDirection - this.swingArc / 2, this.swingDirection + this.swingArc / 2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Swept trail
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, this.swingRange, this.swingDirection - this.swingArc / 2, this.swingAngle);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+
+      // Sword at current swing angle
+      ctx.rotate(this.swingAngle);
+      this.renderBlade(ctx);
+    } else {
+      // Idle: point toward aim
+      ctx.rotate(this.aimAngle || 0);
+      this.renderBlade(ctx);
+    }
+
+    ctx.restore();
+  }
+}
+
+// Spray and Pray - Random direction machine gun
+export class SprayAndPray extends Weapon {
+  constructor(level = 1) {
+    super('sprayAndPray', BALANCE.weapons.sprayAndPray, level);
+  }
+
+  update(deltaTime, player, enemies, projectiles, aimMode, mousePosition) {
+    this.updateLocation(player);
+    this.aimAngle = Math.random() * Math.PI * 2;
+    this.cooldown -= deltaTime;
+
+    const fireRate = this.getFireRate(player.stats || { fireRate: 1 });
+
+    if (this.cooldown <= 0 && enemies.length > 0) {
+      const origX = player.position.x;
+      const origY = player.position.y;
+      const origAim = player.aimAngle;
+
+      player.position.x = this.position.x;
+      player.position.y = this.position.y;
+      player.aimAngle = this.aimAngle;
+
+      this.fire(player, enemies, projectiles);
+
+      if (player.hasDoubleTap && Math.random() < BALANCE.items.doubleTap.doubleShotChance) {
+        setTimeout(() => {
+          if (enemies.length > 0) {
+            const tX = player.position.x;
+            const tY = player.position.y;
+            const tAim = player.aimAngle;
+            player.position.x = this.position.x;
+            player.position.y = this.position.y;
+            player.aimAngle = Math.random() * Math.PI * 2;
+            this.fire(player, enemies, projectiles);
+            player.position.x = tX;
+            player.position.y = tY;
+            player.aimAngle = tAim;
+          }
+        }, 50);
+      }
+
+      player.position.x = origX;
+      player.position.y = origY;
+      player.aimAngle = origAim;
+
+      this.cooldown = (1 / fireRate) + Math.random() * 0.08;
+    }
+  }
+
+  fire(player, enemies, projectiles) {
+    const damage = this.getDamage(player.stats || { damage: BALANCE.player.baseDamage });
+    const angle = Math.random() * Math.PI * 2;
+
+    const projectile = new Projectile(
+      player.position.x,
+      player.position.y,
+      angle,
+      'player'
+    );
+    projectile.damage = damage;
+    projectile.weaponId = this.id;
+    projectile.speed = BALANCE.projectile.baseSpeed * 6.0;
+    projectile.velocity.x = Math.cos(angle) * projectile.speed;
+    projectile.velocity.y = Math.sin(angle) * projectile.speed;
+
+    if (player.hasBounceHouse) {
+      const bounces = BALANCE.items.bounceHouse.bouncesPerStack * (player.bounceHouseStacks || 1);
+      projectile.maxBounces = bounces;
+    }
+    if (player.hasExplosiveRounds) {
+      projectile.explosive = true;
+      projectile.explosionRadius = BALANCE.items.explosiveRounds.aoeRadius;
+      projectile.explosionDamage = damage * BALANCE.items.explosiveRounds.aoeDamagePercent;
+    }
+
+    projectiles.push(projectile);
+
+    this.addMuzzleFlash(player);
+    if (this.soundSystem) {
+      this.soundSystem.play('shoot');
     }
   }
 }
@@ -852,6 +1396,10 @@ export function createWeapon(weaponId, level = 1) {
       return new ChainLightning(level);
     case 'boomerang':
       return new BoomerangLauncher(level);
+    case 'sprayAndPray':
+      return new SprayAndPray(level);
+    case 'sword':
+      return new Sword(level);
     default:
       return new Pistol(level); // Default to pistol
   }

@@ -5,7 +5,7 @@
 export const BALANCE = {
   // Player Base Stats
   player: {
-    baseHealth: 10,  // 10x the basic enemy
+    baseHealth: 20,  // Increased from 10
     baseSpeed: 100,
     baseDamage: 1,  // Exactly kills basic enemy at wave 1
     baseFireRate: 1.0,
@@ -13,9 +13,9 @@ export const BALANCE = {
     baseLuck: 0,
     baseCritChance: 5,
     baseCritDamage: 150,
-    baseRegeneration: 0.02,  // Regen 0.2 HP per second
+    baseRegeneration: 0.01,  // 1 store upgrade worth (0.1 HP per second)
     basePickupRange: 50,
-    size: 20
+    size: 35
   },
 
   // Enemy Configuration - defaults for backward compatibility
@@ -28,16 +28,16 @@ export const BALANCE = {
     damagePerWave: 0.5,
     baseXpValue: 10,
     xpPerWave: 2,
-    size: 15
+    size: 26
   },
 
   // Enemy Type Definitions
   enemyTypes: {
     basic: {
       name: 'Basic',
-      color: '#FF0000',  // Red
-      size: 15,
-      baseHealth: 0.8,  // Easier start (was 1)
+      color: '#0000FF',  // Regular Blue
+      size: 26,
+      baseHealth: 0.96,  // Increased by 20%
       healthPerWave: 0.05,  // Scales more
       baseSpeed: 70,  // Slower start (was 80)
       speedPerWave: 3,  // Faster scaling (was 2)
@@ -46,14 +46,14 @@ export const BALANCE = {
       baseXpValue: 10,
       xpPerWave: 2,
       moneyDropChance: 0.3,
-      moneyValue: 5,
+      moneyValue: 3,
       behavior: 'bouncer'  // Moves in straight line, bounces off walls
     },
     tracker: {
       name: 'Tracker',
       color: '#FFA500',  // Orange
-      size: 12,  // Smaller
-      baseHealth: 0.7,  
+      size: 22,  // Smaller
+      baseHealth: 0.84,  // Increased by 20%
       healthPerWave: 0.3,  // Faster scaling
       baseSpeed: 45,  // Slower start (was 50)
       speedPerWave: 1.5,  // Faster scaling (was 1)
@@ -62,15 +62,15 @@ export const BALANCE = {
       baseXpValue: 5,
       xpPerWave: 1,
       moneyDropChance: 0.2,
-      moneyValue: 7,
+      moneyValue: 5,
       behavior: 'tracker'  // Always moves toward player
     },
     tank: {
       name: 'Tank',
       color: '#8B0000',  // Dark red
-      size: 30,  // Even bigger
-      baseHealth: 40,  // 10x basic enemy (doubled)
-      healthPerWave: 5,  // Scales faster (was 3)
+      size: 52,  // Even bigger
+      baseHealth: 20,  // 5x basic enemy (doubled)
+      healthPerWave: 10,  // Final boost
       baseSpeed: 35,  // Slightly slower
       speedPerWave: 0.8,
       baseDamage: 4,  // Higher damage
@@ -78,16 +78,16 @@ export const BALANCE = {
       baseXpValue: 30,
       xpPerWave: 5,
       moneyDropChance: 0.9,  // Very high money drop chance
-      moneyValue: 40,  // More money (was 25)
+      moneyValue: 10,  // Halved from 20
       behavior: 'tank',  // Random movement, follows player when close
       aggroRadius: 150  // Distance at which it starts following player
     },
     shooter: {
       name: 'Shooter',
       color: '#FFFF00',  // Yellow
-      size: 14,  // Slightly bigger than tracker, smaller than basic
+      size: 24,  // Slightly bigger than tracker, smaller than basic
       baseHealth: 0.7,  // Less than basic
-      healthPerWave: 0.15,
+      healthPerWave: 0.5,  // Final boost
       baseSpeed: 90,  // Faster than basic (basic is 80)
       speedPerWave: 2,
       baseDamage: 0.4,  // Contact damage
@@ -95,9 +95,9 @@ export const BALANCE = {
       baseXpValue: 15,
       xpPerWave: 3,
       moneyDropChance: 0.4,
-      moneyValue: 15,
+      moneyValue: 8,
       behavior: 'shooter',  // Shoots projectiles
-      shootCooldown: 1.5,  // Shoots every 1.5 seconds
+      shootCooldown: 3.0,  // Shoots every 3.0 seconds (reduced by 50%)
       projectileSpeed: 150,  // Slower projectiles that are easier to see
       projectileDamage: 0.2,  // 2% of player health per shot
       projectileSize: 4,  // Visible projectiles
@@ -106,9 +106,9 @@ export const BALANCE = {
     wave: {
       name: 'Wave',
       color: '#FF8800',  // Orange-yellow gradient (will be special rendered)
-      size: 8,  // Smaller
+      size: 13,  // Smaller
       baseHealth: 0.3,  // Very fragile
-      healthPerWave: 0.05,
+      healthPerWave: 0.25,  // Final boost
       baseSpeed: 120,  // Fast
       speedPerWave: 3,
       baseDamage: 0.2,  // Low contact damage
@@ -116,7 +116,7 @@ export const BALANCE = {
       baseXpValue: 3,
       xpPerWave: 1,
       moneyDropChance: 0.1,  // Low drop chance since they spawn in groups
-      moneyValue: 40,
+      moneyValue: 20,
       behavior: 'wave',  // Sine wave movement
       waveAmplitude: 90,  // Wave height in pixels
       waveFrequency: 10,  // How many complete waves across screen width
@@ -130,9 +130,9 @@ export const BALANCE = {
     boss: {
       name: 'Boss',
       color: '#AA00FF',  // Purple
-      size: 50,  // Even larger
+      size: 86,  // Even larger
       baseHealth: 100,  // 100x basic enemy - VERY tanky
-      healthPerWave: 20,  // Scales heavily with waves
+      healthPerWave: 80,  // Final boost
       baseSpeed: 25,  // Very slow
       speedPerWave: 0.3,
       baseDamage: 5,  // Very high contact damage
@@ -140,9 +140,9 @@ export const BALANCE = {
       baseXpValue: 100,
       xpPerWave: 20,
       moneyDropChance: 1.0,  // Always drops money
-      moneyValue: 500,  // Huge money reward
+      moneyValue: 250,  // Halved from 500
       behavior: 'boss',
-      shootCooldown: 0.8,  // Shoots bouncing projectile frequently
+      shootCooldown: 1.6,  // Shoots bouncing projectile frequently (reduced by 50%)
       waveSpawnCooldown: 3.0,  // Spawns 3 wave enemies every 3 seconds
       projectileSpeed: 120,
       projectileDamage: 1.0,  // High projectile damage
@@ -152,9 +152,9 @@ export const BALANCE = {
     zoomer: {
       name: 'Zoomer',
       color: '#FFFF99',  // Light yellow
-      size: 8,  // Small and narrow
+      size: 13,  // Small and narrow
       baseHealth: 0.8,  // Fragile
-      healthPerWave: 0.1,
+      healthPerWave: 0.4,  // Final boost
       baseSpeed: 300,  // VERY fast
       speedPerWave: 5,
       baseDamage: 1.5,  // High damage if they hit
@@ -162,7 +162,7 @@ export const BALANCE = {
       baseXpValue: 50,  // High value
       xpPerWave: 10,
       moneyDropChance: 1.0,  // Always drops money if killed
-      moneyValue: 25,  // Reduced reward
+      moneyValue: 13,  // Halved from 25
       behavior: 'zoomer'  // Straight line, no bounce, leaves screen
     }
   },
@@ -172,50 +172,50 @@ export const BALANCE = {
     // Wave 1-5: Mostly basic with some trackers
     1: { basic: 0.6, tracker: 0.4},
     2: { basic: 0.85, tracker: 0.15 },
-    3: { basic: 0.4, tracker: 0.55, zoomer: 0.05 },
+    3: { basic: 0.5, tracker: 0.45, zoomer: 0.05 },
     4: { basic: 0.7, tracker: 0.2, zoomer: 0.1 },
     5: { basic: 0.6, tracker: 0.3, zoomer: 0.08, tank: 0.02 },
     // Wave 6-9
-    6: { basic: 0.45, tracker: 0.25, tank: 0.05, zoomer: 0.1, wave: 0.15 },
-    7: { basic: 0.4, tracker: 0.25, tank: 0.05, shooter: 0.1, zoomer: 0.05, wave: 0.15 },
-    8: { basic: 0.35, tracker: 0.25, tank: 0.07, shooter: 0.15, zoomer: 0.08, wave: 0.1 },
-    9: { basic: 0.3, tracker: 0.25, tank: 0.08, shooter: 0.2, zoomer: 0.07, wave: 0.1 },
+    6: { basic: 0.5, tracker: 0.3, tank: 0.03, zoomer: 0.07, wave: 0.1 },
+    7: { basic: 0.49, tracker: 0.3, tank: 0.04, shooter: 0.04, zoomer: 0.03, wave: 0.1 },
+    8: { basic: 0.45, tracker: 0.35, tank: 0.05, shooter: 0.05, zoomer: 0.05, wave: 0.05 },
+    9: { tracker: 1.0 }, // Tracker FLOOD wave
     // Wave 10 - First boss appears (just 1)
-    10: { basic: 0.25, tracker: 0.3, tank: 0.1, shooter: 0.2, zoomer: 0.1, wave: 0.04, boss: 0.01 },
+    10: { basic: 0.42, tracker: 0.35, tank: 0.06, shooter: 0.075, zoomer: 0.05, wave: 0.035, boss: 0.01 },
     // Wave 11-19
-    11: { basic: 0.25, tracker: 0.3, tank: 0.08, shooter: 0.22, zoomer: 0.05, wave: 0.1 },
-    12: { basic: 0.25, tracker: 0.28, tank: 0.08, shooter: 0.24, zoomer: 0.05, wave: 0.1 },
-    13: { basic: 0.23, tracker: 0.28, tank: 0.09, shooter: 0.25, zoomer: 0.05, wave: 0.1 },
-    14: { basic: 0.22, tracker: 0.27, tank: 0.09, shooter: 0.27, zoomer: 0.05, wave: 0.1 },
-    15: { basic: 0.2, tracker: 0.25, tank: 0.1, shooter: 0.28, zoomer: 0.06, wave: 0.1, boss: 0.01 },
-    16: { basic: 0.2, tracker: 0.25, tank: 0.1, shooter: 0.3, zoomer: 0.05, wave: 0.1 },
-    17: { basic: 0.18, tracker: 0.25, tank: 0.1, shooter: 0.32, zoomer: 0.05, wave: 0.1 },
-    18: { basic: 0.18, tracker: 0.23, tank: 0.11, shooter: 0.33, zoomer: 0.05, wave: 0.1 },
-    19: { basic: 0.15, tracker: 0.23, tank: 0.12, shooter: 0.35, zoomer: 0.05, wave: 0.1 },
+    11: { basic: 0.425, tracker: 0.35, tank: 0.05, shooter: 0.075, zoomer: 0.03, wave: 0.07 },
+    12: { basic: 0.41, tracker: 0.35, tank: 0.06, shooter: 0.08, zoomer: 0.03, wave: 0.07 },
+    13: { tracker: 1.0 }, // Tracker FLOOD wave 2
+    14: { basic: 0.395, tracker: 0.34, tank: 0.07, shooter: 0.095, zoomer: 0.03, wave: 0.07 },
+    15: { basic: 0.4, tracker: 0.33, tank: 0.07, shooter: 0.1, zoomer: 0.04, wave: 0.05, boss: 0.01 },
+    16: { basic: 0.405, tracker: 0.32, tank: 0.07, shooter: 0.105, zoomer: 0.03, wave: 0.07 },
+    17: { tracker: 0.8, tank: 0.1, zoomer: 0.1 }, // Tracker FLOOD wave 3
+    18: { basic: 0.395, tracker: 0.31, tank: 0.08, shooter: 0.115, zoomer: 0.03, wave: 0.07 },
+    19: { basic: 0.39, tracker: 0.31, tank: 0.08, shooter: 0.12, zoomer: 0.03, wave: 0.07 },
     // Wave 20 - Second boss (still rare)
-    20: { basic: 0.15, tracker: 0.22, tank: 0.12, shooter: 0.3, zoomer: 0.09, wave: 0.1, boss: 0.02 },
+    20: { basic: 0.36, tracker: 0.3, tank: 0.09, shooter: 0.11, zoomer: 0.05, wave: 0.07, boss: 0.02 },
     // Wave 21-29
-    21: { basic: 0.15, tracker: 0.25, tank: 0.1, shooter: 0.35, zoomer: 0.05, wave: 0.1 },
-    22: { basic: 0.15, tracker: 0.24, tank: 0.1, shooter: 0.36, zoomer: 0.05, wave: 0.1 },
-    23: { basic: 0.14, tracker: 0.24, tank: 0.11, shooter: 0.36, zoomer: 0.05, wave: 0.1 },
-    24: { basic: 0.13, tracker: 0.23, tank: 0.11, shooter: 0.38, zoomer: 0.05, wave: 0.1 },
-    25: { basic: 0.12, tracker: 0.22, tank: 0.12, shooter: 0.38, zoomer: 0.05, wave: 0.1, boss: 0.01 },
-    26: { basic: 0.12, tracker: 0.22, tank: 0.12, shooter: 0.39, zoomer: 0.05, wave: 0.1 },
-    27: { basic: 0.11, tracker: 0.21, tank: 0.13, shooter: 0.4, zoomer: 0.05, wave: 0.1 },
-    28: { basic: 0.1, tracker: 0.2, tank: 0.13, shooter: 0.42, zoomer: 0.05, wave: 0.1 },
-    29: { basic: 0.1, tracker: 0.2, tank: 0.14, shooter: 0.41, zoomer: 0.05, wave: 0.1 },
+    21: { basic: 0.375, tracker: 0.32, tank: 0.08, shooter: 0.125, zoomer: 0.03, wave: 0.07 },
+    22: { basic: 0.38, tracker: 0.31, tank: 0.08, shooter: 0.13, zoomer: 0.03, wave: 0.07 },
+    23: { basic: 0.37, tracker: 0.31, tank: 0.09, shooter: 0.13, zoomer: 0.03, wave: 0.07 },
+    24: { tracker: 0.85, shooter: 0.1, tank: 0.05 }, // Tracker FLOOD wave 4
+    25: { basic: 0.365, tracker: 0.30, tank: 0.09, shooter: 0.135, zoomer: 0.03, wave: 0.07, boss: 0.01 },
+    26: { basic: 0.37, tracker: 0.29, tank: 0.09, shooter: 0.14, zoomer: 0.04, wave: 0.07 },
+    27: { tracker: 0.9, wave: 0.05, tank: 0.05 }, // Tracker FLOOD wave 5
+    28: { basic: 0.365, tracker: 0.28, tank: 0.1, shooter: 0.145, zoomer: 0.04, wave: 0.07 },
+    29: { basic: 0.36, tracker: 0.28, tank: 0.1, shooter: 0.15, zoomer: 0.04, wave: 0.07 },
     // Wave 30 - Final boss wave! (only 3 bosses total)
-    30: { basic: 0.1, tracker: 0.2, tank: 0.15, shooter: 0.4, zoomer: 0.05, wave: 0.07, boss: 0.03 },
+    30: { basic: 0.34, tracker: 0.27, tank: 0.11, shooter: 0.14, zoomer: 0.04, wave: 0.07, boss: 0.03 },
     // Default for other waves (no bosses)
-    default: { basic: 0.2, tracker: 0.25, tank: 0.1, shooter: 0.3, zoomer: 0.05, wave: 0.1 }
+    default: { basic: 0.375, tracker: 0.3, tank: 0.08, shooter: 0.125, zoomer: 0.04, wave: 0.08 }
   },
 
   // Spawn System
   spawning: {
-    baseSpawnRate: 0.8,  // Enemies per second at start
-    maxSpawnRate: 15.0,  // Maximum spawn rate (increased to compensate for fewer bosses)
-    spawnRateIncreasePerWave: 0.55,
-    spawnAcceleration: 0.015,  // Spawn rate increase per second
+    baseSpawnRate: 0.95,  // Increased from 0.92
+    maxSpawnRate: 24.3,  // Maximum spawn rate (increased to compensate for fewer bosses)
+    spawnRateIncreasePerWave: 0.77,
+    spawnAcceleration: 0.032,  // Spawn rate increase per second
     waveDuration: 50,  // Seconds per wave
     spawnStartDelay: 1.0,  // Delay before spawning starts
     bossSpawnCooldown: 5.0  // Minimum time between boss spawns
@@ -236,7 +236,7 @@ export const BALANCE = {
   // Projectile Configuration
   projectile: {
     baseSpeed: 400,
-    baseSize: 4,
+    baseSize: 7,
     maxBounces: 0,  // Without Bounce House item
     bounceHouseMaxBounces: 5
   },
@@ -360,6 +360,15 @@ export const BALANCE = {
       chainRange: 20,  // +20px range per level
       special: 'fork'  // Forks to 2 enemies at level 4
     },
+    sword: {
+      damage: 0.2,  // +20% damage per level
+      special: 'width'  // Wider arc at higher levels
+    },
+    sprayAndPray: {
+      fireRate: 0.25,  // +25% fire rate per level
+      damage: 0.15,  // +15% damage per level
+      special: 'accuracy'  // Slightly less random at higher levels
+    },
     boomerang: {
       projectileCount: 1,  // +1 boomerang per 2 levels (1→3)
       boomerangDistance: 50,  // +50px distance per level
@@ -382,8 +391,8 @@ export const BALANCE = {
     },
     shotgun: {
       name: 'Shotgun',
-      cost: 50,
-      fireRate: 0.2,  
+      cost: 25,
+      fireRate: 0.24,  
       damageMultiplier: 3.0,  // 3x damage
       projectileCount: 4,
       spread: Math.PI / 4,  // 45 degree cone
@@ -405,21 +414,21 @@ export const BALANCE = {
     },
     rocketLauncher: {
       name: 'Rocket Launcher',
-      cost: 500,
-      fireRate: 0.095,  // Once per ~10.5 seconds
-      damageMultiplier: 5.0,  // 5x damage
+      cost: 75,
+      fireRate: 0.19,  // Doubled from 0.095 (once per ~5.25 seconds)
+      damageMultiplier: 6.0,  // Reduced by 60% from 15.0
       projectileCount: 1,
       spread: 0,
-      aoeRadius: 100,
+      aoeRadius: 150, // Increased 50% from 100
       description: 'Massive damage in an area. Very slow fire rate.',
       unlocked: false,
       upgradeDescription: '+30% damage, +15px blast radius, dual rockets at level 4'
     },
     laserBeam: {
       name: 'Laser Beam',
-      cost: 300,  // 50% increase from 200
+      cost: 600,
       fireRate: 40.0,  // Continuous beam effect
-      damageMultiplier: 0.1,  // Low damage per tick but high rate
+      damageMultiplier: 0.1,  // Scales with player damage stats normally
       projectileCount: 1,
       spread: 0,
       beam: true,
@@ -430,21 +439,21 @@ export const BALANCE = {
     ricochet: {
       name: 'Ricochet Gun',
       cost: 175,
-      fireRate: 2.0,
-      damageMultiplier: 1.2,
+      fireRate: 3.0,  // 50% faster (was 2.0)
+      damageMultiplier: 0.9,  // 25% reduction from 1.2
       projectileCount: 1,
       spread: 0,
       autoAim: true,  // Bullets bounce toward nearest enemy
-      maxBounces: 7,
-      description: 'Bullets bounce and seek enemies. Smart targeting.',
+      maxBounces: Infinity,  // Infinite bounces until hitting an enemy
+      description: 'Bullets bounce infinitely until hitting an enemy.',
       unlocked: false,
       upgradeDescription: '+2 bounces per level, +15% damage, improved homing'
     },
     waveGun: {
       name: 'Wave Gun',
-      cost: 180,  // Reduced from 225
+      cost: 280,
       fireRate: 1.5,
-      damageMultiplier: 2.8,
+      damageMultiplier: 1.35,  // 40% reduction from 2.25
       projectileCount: 3,
       spread: 0,
       wavePattern: true,  // Projectiles move in sine wave
@@ -457,7 +466,7 @@ export const BALANCE = {
       name: 'Burst Rifle',
       cost: 125,
       fireRate: 1.2,  // Increased from 0.8
-      damageMultiplier: 3.5,  // Reduced from 5.7
+      damageMultiplier: 2.1,  // 40% reduction from 3.5
       projectileCount: 3,  // 3-round burst
       burstDelay: 0.08,  // Delay between burst shots
       spread: Math.PI / 24,  // Small spread
@@ -467,7 +476,7 @@ export const BALANCE = {
     },
     orbitalCannon: {
       name: 'Orbital Cannon',
-      cost: 400,
+      cost: 500,
       fireRate: 0.5,
       damageMultiplier: 8.5,
       projectileCount: 8,  // Ring of projectiles
@@ -479,7 +488,7 @@ export const BALANCE = {
     },
     novaBurst: {
       name: 'Nova Burst',
-      cost: 300,
+      cost: 400,
       fireRate: 1.2,
       damageMultiplier: 1.5,
       projectileCount: 10,  // 10 projectiles in a perfect circle
@@ -504,6 +513,34 @@ export const BALANCE = {
       unlocked: false,
       upgradeDescription: '+1 chain per level, +20px range, forks at level 4'
     },
+    sword: {
+      name: 'Sword',
+      cost: 15,
+      fireRate: 0.24,  // Swings per second (60% slower again)
+      damageMultiplier: 1.2,  // Scales with player damage
+      projectileCount: 0,
+      spread: 0,
+      swingArc: Math.PI / 2,  // 90 degree arc
+      swingRange: 96,  // Pixel reach (+20%)
+      windUpDuration: 0.3,  // Wind-up before strike
+      swingDuration: 0.2,  // Swing animation time in seconds
+      description: 'Melee weapon. Swings in an arc, hitting all enemies.',
+      unlocked: false,
+      upgradeDescription: '+20% damage, +10px range, wider arc per level'
+    },
+    sprayAndPray: {
+      name: 'Spray and Pray',
+      cost: 100,
+      fireRate: 6.0,  // Fast like a machine gun
+      damageMultiplier: 1.0,  // Same as pistol
+      projectileCount: 1,
+      spread: Math.PI * 2,  // Full random direction
+      randomAim: true,  // Always shoots in random direction
+      projectileSpeedMultiplier: 6.0,  // +500% speed (6x pistol)
+      description: 'Sprays bullets in random directions at insane speed.',
+      unlocked: false,
+      upgradeDescription: '+25% fire rate, +15% damage per level'
+    },
     boomerang: {
       name: 'Boomerang Launcher',
       cost: 65,  // Affordable early option
@@ -523,9 +560,9 @@ export const BALANCE = {
   items: {
     bounceHouse: {
       name: 'Bounce House',
-      cost: 250,  // 30% increase (was 200)
+      cost: 2500,
       description: 'Projectiles bounce +1 time per stack',
-      maxStacks: 10,  // Now stackable
+      maxStacks: 3,  // Now stackable up to 3
       stackCostMultiplier: 2,  // 2x cost for each additional stack
       bouncesPerStack: 1  // 1 bounce per stack
     },
@@ -584,7 +621,7 @@ export const BALANCE = {
     },
     explosiveRounds: {
       name: 'Explosive Rounds',
-      cost: 6000,  // 15x increase from original 400
+      cost: 13000,  // Increased by 7k (was 6000)
       description: 'All projectiles explode on impact (small AoE)',
       aoeRadius: 30,
       aoeDamagePercent: 0.3,  // 30% of projectile damage
@@ -742,8 +779,8 @@ export const BALANCE = {
   // UI Configuration
   ui: {
     canvasWidth: 800,
-    canvasHeight: 550,
-    gameAreaHeight: 450,
+    canvasHeight: 800,
+    gameAreaHeight: 700,
     uiBarHeight: 100,
     gridSize: 50,
     levelBoxSize: 60,
@@ -757,12 +794,12 @@ export const BALANCE = {
     optionsCount: 4,  // Number of upgrade choices
     rerollCost: 25,  // Cost to reroll options (reduced to match new economy)
     upgradeTypes: [
-      { type: 'health', weight: 10, value: 0.5, display: '+0.5 Health' },
-      { type: 'damage', weight: 10, value: 0.1, display: '+0.1 Damage' },
+      { type: 'health', weight: 10, value: 1.0, display: '+1 Health' },
+      { type: 'damage', weight: 10, value: 0.2, display: '+0.2 Damage' },
       { type: 'fireRate', weight: 8, value: 0.1, display: '+10% Fire Rate' },
       { type: 'speed', weight: 8, value: 10, display: '+10 Speed' },
       { type: 'dodge', weight: 6, value: 2, display: '+2% Dodge' },
-      { type: 'luck', weight: 6, value: 2, display: '+2 Luck' },
+      { type: 'luck', weight: 6, value: 1, display: '+1 Luck' },
       { type: 'critChance', weight: 5, value: 2, display: '+2% Crit Chance' },
       { type: 'critDamage', weight: 5, value: 10, display: '+10% Crit Damage' },
       { type: 'regeneration', weight: 4, value: 0.005, display: '+0.05 HP/s Regen' }
@@ -773,8 +810,25 @@ export const BALANCE = {
 // Helper function to get enemy stats for a given wave and type
 export function getEnemyStats(wave, type = 'basic') {
   const enemyConfig = BALANCE.enemyTypes[type] || BALANCE.enemyTypes.basic;
+  
+  let healthPerWaveScale = enemyConfig.healthPerWave;
+  // Increase health scaling of basic and tracker enemies by 50% after level 6
+  if (wave > 6 && (type === 'basic' || type === 'tracker')) {
+    healthPerWaveScale *= 1.5;
+  }
+  
+  let health = enemyConfig.baseHealth + (wave - 1) * healthPerWaveScale;
+  
+  if (wave < 6 && (type === 'basic' || type === 'tracker')) {
+    health = enemyConfig.baseHealth; // No scaling until wave 6
+  }
+
+  // Geometric health scaler after each boss level (every 10 levels maps to 2x jump mathematically)
+  const epochMultiplier = Math.pow(2, Math.floor((wave - 1) / 10));
+  health *= epochMultiplier;
+
   return {
-    health: enemyConfig.baseHealth + (wave - 1) * enemyConfig.healthPerWave,
+    health: health,
     speed: enemyConfig.baseSpeed + (wave - 1) * enemyConfig.speedPerWave,
     damage: enemyConfig.baseDamage + (wave - 1) * enemyConfig.damagePerWave,
     xpValue: enemyConfig.baseXpValue + (wave - 1) * enemyConfig.xpPerWave,

@@ -157,14 +157,13 @@ export class EffectsSystem {
     }
   }
 
-  // Explosion effect for rockets
   addExplosionEffect(x, y, radius = 50) {
     // Big flash
     this.addFlash('#FFA500', 0.2);
-    this.addScreenShake(6, 0.4);
+    this.addScreenShake(3, 0.2);
     
     // Ring of fire particles
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
       const angle = (Math.PI * 2 * i) / 20;
       const speed = 100 + Math.random() * 150;
       this.particles.push({
@@ -180,7 +179,7 @@ export class EffectsSystem {
     }
     
     // Smoke particles
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 30 + Math.random() * 50;
       this.particles.push({
@@ -308,7 +307,7 @@ export class EffectsSystem {
     this.floatingTexts.push({
       x: x + (Math.random() - 0.5) * 20, // Slight random offset to prevent overlap
       y,
-      text: Math.floor(damage).toString(),
+      text: damage.toFixed(1),  // Show 1 decimal place
       vy: -40, // Float upward
       life: 0.8, // Fade over 0.8 seconds
       color: '#FFFFFF', // White color
@@ -466,7 +465,7 @@ export class EffectsSystem {
       ctx.globalAlpha = alpha * 0.7; // Make text slightly transparent
       ctx.fillStyle = text.color;
       // Use custom size if specified, otherwise default to 16px
-      ctx.font = text.size ? `bold ${text.size}px monospace` : 'bold 16px monospace';
+      ctx.font = text.size ? `bold ${text.size * 1.3}px monospace` : 'bold 21px monospace';
       ctx.fillText(text.text, text.x, text.y);
       ctx.restore();
     }
@@ -478,7 +477,7 @@ export class EffectsSystem {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.fillStyle = flash.color;
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.fillRect(0, 0, this.canvas.logicalWidth, this.canvas.logicalHeight);
       ctx.restore();
     }
   }

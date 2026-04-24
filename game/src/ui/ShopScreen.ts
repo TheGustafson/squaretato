@@ -110,6 +110,8 @@ export class ShopScreen {
   // Weapons-tab (split loadout view) hover state
   private weaponsHoveredOrbitId: string | null = null;   // owned weapon glyph hovered on avatar
   private weaponsHoveredListId: string | null = null;    // buy-list card hovered
+  private weaponsHoveredListBuyId: string | null = null;     // buy button hover
+  private weaponsHoveredListUpgradeId: string | null = null; // upgrade button hover
   private weaponsListScrollOffset: number = 0;
   private weaponPreviewCache: Map<string, Weapon> = new Map();
 
@@ -360,6 +362,8 @@ export class ShopScreen {
     this.weaponsListScrollOffset = 0;
     this.weaponsHoveredOrbitId = null;
     this.weaponsHoveredListId = null;
+    this.weaponsHoveredListBuyId = null;
+    this.weaponsHoveredListUpgradeId = null;
 
     this.updateOwnership();
   }
@@ -452,6 +456,8 @@ export class ShopScreen {
     this.equipHoverButton = '';
     this.weaponsHoveredOrbitId = null;
     this.weaponsHoveredListId = null;
+    this.weaponsHoveredListBuyId = null;
+    this.weaponsHoveredListUpgradeId = null;
   }
 
   updateOwnership(): void {
@@ -1987,18 +1993,6 @@ export class ShopScreen {
       const nameTxt = isOwned ? `${item.name} Lv${lvl}` : item.name;
       ctx.fillText(nameTxt, wl.listX + 48, iy + 22);
 
-      // Cost or OWNED label
-      ctx.textAlign = 'right';
-      if (isOwned) {
-        ctx.fillStyle = '#44FF44';
-        ctx.font = 'bold 11px monospace';
-        ctx.fillText('OWNED', wl.listX + wl.listW - 10, iy + 22);
-      } else {
-        ctx.fillStyle = canAfford ? '#FFD700' : '#AA4444';
-        ctx.font = 'bold 13px monospace';
-        ctx.fillText(`$${item.cost}`, wl.listX + wl.listW - 10, iy + 22);
-      }
-
       // Description (truncated)
       ctx.fillStyle = '#888888';
       ctx.font = '10px monospace';
@@ -2006,26 +2000,53 @@ export class ShopScreen {
       const desc = item.description || '';
       ctx.fillText(desc.length > 56 ? desc.slice(0, 53) + '...' : desc, wl.listX + 48, iy + 42);
 
-      // Buy button (only if not owned)
-      if (!isOwned) {
-        const btnW = 64, btnH = 22;
-        const btnX = wl.listX + wl.listW - btnW - 8;
-        const btnY = iy + ih - btnH - 12;
-        ctx.fillStyle = isHover && canBuy ? '#1a3a1a' : '#0a2a0a';
+      // Action buttons (right side, stacked): UPGRADE (owned only) + BUY.
+      const btnW = 80, btnH = 22;
+      const btnX = wl.listX + wl.listW - btnW - 8;
+      const info = this.getEquippableInfo(item);
+      const canUpgrade = isOwned && info.level < info.maxLevel && playerData.money >= info.upgradeCost;
+      const isUpgHover = this.weaponsHoveredListUpgradeId === item.id;
+      const isBuyHover = this.weaponsHoveredListBuyId === item.id;
+
+      // BUY row (top)
+      {
+        const btnY = iy + 10;
+        ctx.fillStyle = isBuyHover && canBuy ? '#1a3a1a' : '#0a2a0a';
         ctx.fillRect(btnX, btnY, btnW, btnH);
         ctx.strokeStyle = canBuy ? '#44FF44' : '#553333';
         ctx.lineWidth = 2;
         ctx.strokeRect(btnX, btnY, btnW, btnH);
-        ctx.fillStyle = canBuy ? '#44FF44' : '#FF6666';
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(slotsFull ? 'FULL' : 'BUY', btnX + btnW / 2, btnY + 15);
-      } else {
-        // Sell hint for owned weapons on the right side
-        ctx.fillStyle = '#AA8800';
-        ctx.font = '9px monospace';
-        ctx.textAlign = 'right';
-        ctx.fillText('sell from loadout ←', wl.listX + wl.listW - 10, iy + ih - 14);
+        ctx.fillStyle = canBuy ? '#44FF44' : (slotsFull ? '#FF6666' : '#AA6666');
+        const buyLabel = slotsFull ? 'FULL' : `BUY $${item.cost}`;
+        ctx.fillText(buyLabel, btnX + btnW / 2, btnY + 15);
+      }
+
+      // UPGRADE row (below BUY) — only for owned weapons
+      if (isOwned) {
+        const btnY = iy + ih - btnH - 12;
+        if (info.level >= info.maxLevel) {
+          ctx.fillStyle = '#1a1a0a';
+          ctx.fillRect(btnX, btnY, btnW, btnH);
+          ctx.strokeStyle = '#554422';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(btnX, btnY, btnW, btnH);
+          ctx.font = 'bold 11px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#FFD700';
+          ctx.fillText('MAX LV', btnX + btnW / 2, btnY + 15);
+        } else {
+          ctx.fillStyle = isUpgHover && canUpgrade ? '#2a2a1a' : '#1a1a0a';
+          ctx.fillRect(btnX, btnY, btnW, btnH);
+          ctx.strokeStyle = canUpgrade ? '#FFD700' : '#554422';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(btnX, btnY, btnW, btnH);
+          ctx.font = 'bold 11px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = canUpgrade ? '#FFD700' : '#AA8844';
+          ctx.fillText(`UP $${info.upgradeCost}`, btnX + btnW / 2, btnY + 15);
+        }
       }
     }
     ctx.restore();
@@ -2047,6 +2068,8 @@ export class ShopScreen {
   private onMoveWeaponsTab(pos: { x: number; y: number }, layout: ShopLayout): void {
     this.weaponsHoveredOrbitId = null;
     this.weaponsHoveredListId = null;
+    this.weaponsHoveredListBuyId = null;
+    this.weaponsHoveredListUpgradeId = null;
 
     // Orbit weapon hit-test — circular bounds against each glyph's rect.
     const positions = this.getOwnedWeaponPositions(layout);
@@ -2058,20 +2081,33 @@ export class ShopScreen {
       }
     }
 
-    // Buy list hit-test
+    // Buy list hit-test (card, BUY button, UPGRADE button).
     const wl = this.getWeaponsLayout(layout);
     const items = this.weapons;
     const ih = this.getWeaponsListItemHeight();
     const headerH = 28;
     const visibleCount = Math.max(1, Math.floor((wl.listH - headerH) / ih));
     const startIdx = Math.floor(this.weaponsListScrollOffset);
+    const btnW = 80, btnH = 22;
+    const btnX = wl.listX + wl.listW - btnW - 8;
     for (let i = startIdx; i < Math.min(items.length, startIdx + visibleCount + 1); i++) {
+      const item = items[i];
       const iy = wl.listY + headerH + (i - this.weaponsListScrollOffset) * ih;
-      if (pos.x >= wl.listX && pos.x <= wl.listX + wl.listW &&
-          pos.y >= iy && pos.y <= iy + ih - 6) {
-        this.weaponsHoveredListId = items[i].id;
-        return;
+      if (pos.x < wl.listX || pos.x > wl.listX + wl.listW ||
+          pos.y < iy || pos.y > iy + ih - 6) continue;
+
+      this.weaponsHoveredListId = item.id;
+      const buyBtnY = iy + 10;
+      if (pos.x >= btnX && pos.x <= btnX + btnW && pos.y >= buyBtnY && pos.y <= buyBtnY + btnH) {
+        this.weaponsHoveredListBuyId = item.id;
       }
+      if ((item.ownedCount || 0) > 0) {
+        const upgBtnY = iy + ih - btnH - 12;
+        if (pos.x >= btnX && pos.x <= btnX + btnW && pos.y >= upgBtnY && pos.y <= upgBtnY + btnH) {
+          this.weaponsHoveredListUpgradeId = item.id;
+        }
+      }
+      return;
     }
   }
 
@@ -2082,17 +2118,17 @@ export class ShopScreen {
       if (item) this.sellEquippable(item);
       return;
     }
-    // Click on list card → buy (if not owned, affordable, slots available).
-    if (this.weaponsHoveredListId) {
-      const item = this.weapons.find(w => w.id === this.weaponsHoveredListId);
+    // Upgrade button takes precedence over buy (owned weapon row).
+    if (this.weaponsHoveredListUpgradeId) {
+      const item = this.weapons.find(w => w.id === this.weaponsHoveredListUpgradeId);
+      if (item) this.upgradeEquippable(item);
+      return;
+    }
+    // Buy button: supports duplicates — purchaseItem handles slot-full / affordability.
+    if (this.weaponsHoveredListBuyId) {
+      const item = this.weapons.find(w => w.id === this.weaponsHoveredListBuyId);
       if (!item) return;
       const owned = (this.gameState.playerData.weapons || []).length;
-      if ((item.ownedCount || 0) > 0) {
-        // Clicking an owned weapon in the list is a no-op (sell happens on the
-        // avatar). Play a soft fail so the player knows the input registered.
-        if (this.soundSystem) this.soundSystem.play('buttonClick');
-        return;
-      }
       if (owned >= this.maxWeapons) {
         if (this.soundSystem) this.soundSystem.play('purchaseFail');
         return;
